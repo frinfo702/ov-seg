@@ -329,7 +329,12 @@ class VisionTransformer(nn.Module):
         x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
         x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
         if m is not None:
-            m = self.mask_pool(m.to(torch.float).squeeze()).reshape(m.shape[0], -1).unsqueeze(-1)
+            m = m.to(torch.float)
+            if m.dim() == 4 and m.shape[1] == 1:
+                m = m.squeeze(1)
+            elif m.dim() == 2:
+                m = m.unsqueeze(0)
+            m = self.mask_pool(m).reshape(m.shape[0], -1).unsqueeze(-1)
             m = torch.ceil(m)
             if self.mask_embedding.shape[1] == 1:
                 mask_embedding = self.mask_embedding.to(x.dtype).repeat(1, x.shape[1], 1)
