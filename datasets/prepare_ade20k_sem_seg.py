@@ -25,7 +25,7 @@ if __name__ == "__main__":
     dataset_dir = (
         Path(os.getenv("DETECTRON2_DATASETS", "datasets")) / "ADEChallengeData2016"
     )
-    print('Caution: we only generate the validation set!')
+    print("Caution: we only generate the validation set!")
     for name in ["validation"]:
         annotation_dir = dataset_dir / "annotations" / name
         output_dir = dataset_dir / "annotations_detectron2" / name

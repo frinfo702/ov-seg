@@ -5,11 +5,10 @@
 import os
 import os.path as osp
 from pathlib import Path
-import tqdm
 
 import numpy as np
+import tqdm
 from PIL import Image
-
 
 clsID_to_trID = {
     0: 255,
@@ -36,6 +35,7 @@ clsID_to_trID = {
     255: 255,
 }
 
+
 def convert_to_trainID(
     maskpath, out_mask_dir, is_train, clsID_to_trID=clsID_to_trID, suffix=""
 ):
@@ -53,10 +53,9 @@ def convert_to_trainID(
     Image.fromarray(mask_copy).save(seg_filename, "PNG")
 
 
-
 if __name__ == "__main__":
     dataset_dir = Path(os.getenv("DETECTRON2_DATASETS", "datasets"))
-    print('Caution: we only generate the validation set!')
+    print("Caution: we only generate the validation set!")
     voc_path = dataset_dir / "VOCdevkit" / "VOC2012"
     out_mask_dir = voc_path / "annotations_detectron2"
     out_image_dir = voc_path / "images_detectron2"
@@ -65,7 +64,9 @@ if __name__ == "__main__":
         os.makedirs((out_image_dir / name), exist_ok=True)
         val_list = [
             osp.join(voc_path, "SegmentationClassAug", f + ".png")
-            for f in np.loadtxt(osp.join(voc_path, "ImageSets/Segmentation/val.txt"), dtype=np.str).tolist()
+            for f in np.loadtxt(
+                osp.join(voc_path, "ImageSets/Segmentation/val.txt"), dtype=np.str
+            ).tolist()
         ]
         for file in tqdm.tqdm(val_list):
             convert_to_trainID(file, out_mask_dir, is_train=False)

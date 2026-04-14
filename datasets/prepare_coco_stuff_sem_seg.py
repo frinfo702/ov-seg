@@ -5,13 +5,12 @@
 
 import os
 import os.path as osp
-from pathlib import Path
-import tqdm
 from glob import glob
+from pathlib import Path
 
 import numpy as np
+import tqdm
 from PIL import Image
-
 
 full_clsID_to_trID = {
     0: 0,
@@ -188,6 +187,7 @@ full_clsID_to_trID = {
     255: 255,
 }
 
+
 def convert_to_trainID(
     maskpath, out_mask_dir, is_train, clsID_to_trID=full_clsID_to_trID, suffix=""
 ):
@@ -205,10 +205,9 @@ def convert_to_trainID(
     Image.fromarray(mask_copy).save(seg_filename, "PNG")
 
 
-
 if __name__ == "__main__":
     dataset_dir = Path(os.getenv("DETECTRON2_DATASETS", "datasets"))
-    print('Caution: we only generate the training set!')
+    print("Caution: we only generate the training set!")
     coco_path = dataset_dir / "coco"
     mask_dir = coco_path / "stuffthingmaps"
     out_mask_dir = coco_path / "stuffthingmaps_detectron2"

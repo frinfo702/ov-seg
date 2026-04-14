@@ -1,12 +1,17 @@
 open_clip_training/openclip_data/*
 open_clip_training/src/logs/*
 *__pycache__*
+
+datasets/
+!datasets/**/*.py
 datasets/*/*.json
 datasets/**/*.json
 datasets/*/*.png
 datasets/**/*.png
 datasets/*/*.jpg
 datasets/**/*.jpg
+
+
 wandb/
 output/
 checkpoints/
