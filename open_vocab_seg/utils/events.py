@@ -9,6 +9,8 @@ from detectron2.utils.events import EventWriter, get_event_storage
 
 def setup_wandb(cfg, args):
     if comm.is_main_process():
+        if wandb.run is not None:
+            return wandb.run
         init_args = {
             k.lower(): v
             for k, v in cfg.WANDB.items()
@@ -27,7 +29,8 @@ def setup_wandb(cfg, args):
             }
         if ("name" not in init_args) or (init_args["name"] is None):
             init_args["name"] = os.path.basename(args.config_file)
-        wandb.init(**init_args)
+        return wandb.init(**init_args)
+    return None
 
 
 class BaseRule(object):
@@ -118,4 +121,5 @@ class WandbWriter(EventWriter):
         wandb.log(stats, step=storage.iter)
 
     def close(self):
-        wandb.finish()
+        if wandb.run is not None:
+            wandb.finish()

@@ -50,9 +50,9 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
     """
     num_classes = len(class_names)
     hist_bins = np.arange(num_classes + 1)
-    histogram = np.zeros((num_classes,), dtype=np.int)
+    histogram = np.zeros((num_classes,), dtype=np.int64)
     for entry in dataset_dicts:
-        classes = np.asarray([entry["category_id"]], dtype=np.int)
+        classes = np.asarray([entry["category_id"]], dtype=np.int64)
         if len(classes):
             assert classes.min() >= 0, f"Got an invalid category_id={classes.min()}"
             assert (
@@ -341,4 +341,3 @@ def build_detection_test_loader(
         collate_fn=trivial_batch_collator,
     )
     return data_loader
-
