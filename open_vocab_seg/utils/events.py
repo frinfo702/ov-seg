@@ -33,27 +33,6 @@ def setup_wandb(cfg, args):
     return None
 
 
-class BaseRule(object):
-    def __call__(self, target):
-        return target
-
-
-class IsIn(BaseRule):
-    def __init__(self, keyword: str):
-        self.keyword = keyword
-
-    def __call__(self, target):
-        return self.keyword in target
-
-
-class Prefix(BaseRule):
-    def __init__(self, keyword: str):
-        self.keyword = keyword
-
-    def __call__(self, target):
-        return "/".join([self.keyword, target])
-
-
 class WandbWriter(EventWriter):
     """
     Write all scalars to a tensorboard file.
@@ -66,20 +45,17 @@ class WandbWriter(EventWriter):
             kwargs: other arguments passed to `torch.utils.tensorboard.SummaryWriter(...)`
         """
         self._last_write = -1
-        self._group_rules = [
-            (IsIn("/"), BaseRule()),
-            (IsIn("loss"), Prefix("train")),
-        ]
 
     def write(self):
+        if wandb.run is None:
+            return
 
         storage = get_event_storage()
 
         def _group_name(scalar_name):
-            for (rule, op) in self._group_rules:
-                if rule(scalar_name):
-                    return op(scalar_name)
-            return scalar_name
+            if "/" in scalar_name:
+                return scalar_name
+            return f"train/{scalar_name}"
 
         stats = {
             _group_name(name): scalars[0]

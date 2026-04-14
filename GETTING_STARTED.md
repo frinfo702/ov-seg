@@ -64,7 +64,7 @@ You may also want to try our small model (R101c + CLIP-ViT-B/16) [ovseg_R101c_vi
 Download the checkpoint with mpt only [ovseg_swinbase_vitL14_mpt_only.pt](https://drive.google.com/file/d/1LJGWFjHw76OGDNy9r9KQIaACfIm9KMhQ/view?usp=sharing) (md5: <tt>2dd495</tt>).
 
   ```bash
-  python train_net.py --num-gpu 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.WEIGHTS #PATH_of_ovseg_swinbase_vitL14_mpt_only.pt DATASETS.TEST \(\"ade20k_sem_seg_val\",\"ade20k_full_sem_seg_val\"\) 
+  uv run python train_net.py --num-gpus 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.WEIGHTS /path/to/ovseg_swinbase_vitL14_mpt_only.pt DATASETS.TEST '("ade20k_sem_seg_val","ade20k_full_sem_seg_val")'
   ```
   
 - Mask prompt tuning can improve over fully finetuned model (Table 3 in [paper](https://arxiv.org/pdf/2210.04150.pdf))
@@ -72,7 +72,7 @@ Download the checkpoint with mpt only [ovseg_swinbase_vitL14_mpt_only.pt](https:
 With the same [ovseg_swinbase_vitL14_ft_mpt.pth](https://drive.google.com/file/d/1cn-ohxgXDrDfkzC1QdO-fi8IjbjXmgKy/view?usp=sharing) checkpoint, set `MASK_PROMPT_FWD` as `False` 
 
   ```bash
-  python train_net.py --num-gpu 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.MASK_PROMPT_FWD False MODEL.WEIGHTS #PATH_of_ovseg_swinbase_vitL14_ft_mpt.pth DATASETS.TEST \(\"ade20k_sem_seg_val\",\"ade20k_full_sem_seg_val\"\) 
+  uv run python train_net.py --num-gpus 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.MASK_PROMPT_FWD False MODEL.WEIGHTS /path/to/ovseg_swinbase_vitL14_ft_mpt.pth DATASETS.TEST '("ade20k_sem_seg_val","ade20k_full_sem_seg_val")'
   ```
 
 - The effects of class prediction ensemble (Table 6 in [paper](https://arxiv.org/pdf/2210.04150.pdf))
@@ -80,7 +80,7 @@ With the same [ovseg_swinbase_vitL14_ft_mpt.pth](https://drive.google.com/file/d
 With the same [ovseg_swinbase_vitL14_ft_mpt.pth](https://drive.google.com/file/d/1cn-ohxgXDrDfkzC1QdO-fi8IjbjXmgKy/view?usp=sharing) checkpoint, set `CLIP_ENSEMBLE` as `False`.
 
   ```bash
-  python train_net.py --num-gpu 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE False MODEL.WEIGHTS #PATH_of_ovseg_swinbase_vitL14_ft_mpt.pth DATASETS.TEST \(\"ade20k_sem_seg_val\",\"ade20k_full_sem_seg_val\"\) 
+  uv run python train_net.py --num-gpus 8 --eval-only --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE False MODEL.WEIGHTS /path/to/ovseg_swinbase_vitL14_ft_mpt.pth DATASETS.TEST '("ade20k_sem_seg_val","ade20k_full_sem_seg_val")'
   ```
 
 ### Training Segmentation model
@@ -88,15 +88,15 @@ With the same [ovseg_swinbase_vitL14_ft_mpt.pth](https://drive.google.com/file/d
   Our model is trained on COCO-Stuff
   
 - Training baseline w/ original CLIP
-  ```
-  python train_net.py --num-gpu 8 --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.MASK_PROMPT_FWD False
+  ```bash
+  uv run python train_net.py --num-gpus 8 --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.MASK_PROMPT_FWD False
   ```
 
 To reproduce our final results, you may want to use the our mask-adapted CLIP
 
 - Training ovseg w/ mask-adapted CLIP
-  ```
-  python train_net.py --num-gpu 8 --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.CLIP_MODEL_NAME #PATH_TO_MASKADAPTED_CLIP
+  ```bash
+  uv run python train_net.py --num-gpus 8 --config-file configs/ovseg_swinB_vitL_bs32_120k.yaml MODEL.CLIP_ADAPTER.CLIP_MODEL_NAME /path/to/mask_adapted_clip.pt
   ```
   
 CAUTION: The final results is sensitive to the ensemble (appendix A.5 in [paper](https://arxiv.org/pdf/2210.04150.pdf)). Thus, you may want to use the ```tools/search_thr_ensemble_w.sh``` to find the best ensemble hyper-parameters.
