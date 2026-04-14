@@ -1,21 +1,22 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
+import sitecustomize  # noqa: F401
+
 import argparse
 import glob
 import multiprocessing as mp
 import os
 import time
+
 import cv2
 import tqdm
-
 from detectron2.config import get_cfg
-
-from detectron2.projects.deeplab import add_deeplab_config
 from detectron2.data.detection_utils import read_image
+from detectron2.projects.deeplab import add_deeplab_config
 from detectron2.utils.logger import setup_logger
-from open_vocab_seg import add_ovseg_config
 
+from open_vocab_seg import add_ovseg_config
 from open_vocab_seg.utils import VisualizationDemo
 
 # constants
@@ -35,7 +36,9 @@ def setup_cfg(args):
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Detectron2 demo for open vocabulary segmentation")
+    parser = argparse.ArgumentParser(
+        description="Detectron2 demo for open vocabulary segmentation"
+    )
     parser.add_argument(
         "--config-file",
         default="configs/ovseg_swinB_vitL_demo.yaml",
@@ -49,9 +52,7 @@ def get_parser():
         "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
-        "--class-names",
-        nargs="+",
-        help="A list of user-defined class_names"
+        "--class-names", nargs="+", help="A list of user-defined class_names"
     )
     parser.add_argument(
         "--output",
@@ -102,7 +103,9 @@ if __name__ == "__main__":
                     assert os.path.isdir(args.output), args.output
                     out_filename = os.path.join(args.output, os.path.basename(path))
                 else:
-                    assert len(args.input) == 1, "Please specify a directory with args.output"
+                    assert len(args.input) == 1, (
+                        "Please specify a directory with args.output"
+                    )
                     out_filename = args.output
                 visualized_output.save(out_filename)
             else:

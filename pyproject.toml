@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ov-seg"
+version = "0.1.0"
+description = "Open-Vocabulary Semantic Segmentation with Mask-adapted CLIP"
+readme = "README.md"
+requires-python = ">=3.9,<3.10"
+dependencies = [
+    "braceexpand",
+    "clip",
+    "cython",
+    "detectron2",
+    "fire",
+    "h5py",
+    "numpy<2",
+    "opencv-python",
+    "pandas<3",
+    "scipy",
+    "setuptools==59.5.0",
+    "shapely",
+    "tabulate",
+    "timm",
+    "torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.7.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl",
+    "torch-ema",
+    "torchmetrics==0.11.4",
+    "torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.22.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl",
+    "wandb",
+    "webdataset>=0.2.5",
+]
+
+[project.optional-dependencies]
+clip = ["clip"]
+demo = ["gradio", "huggingface-hub<1"]
+open-clip = ["open_clip_torch", "requests"]
+test = [
+    "pytest==7.0.1",
+    "pytest-xdist==2.5.0",
+]
+
+[tool.uv.sources]
+clip = { path = "third_party/CLIP", editable = true }
+detectron2 = { git = "https://github.com/facebookresearch/detectron2", rev = "b599f139756bd3646a26a909caf86a1a159e53a7" }
+open_clip_torch = { path = "open_clip_training", editable = true }
+
+[tool.uv.extra-build-dependencies]
+clip = ["setuptools"]
+detectron2 = ["torch", "wheel"]
+
+[tool.setuptools.packages.find]
+include = ["open_vocab_seg*"]

@@ -7,6 +7,8 @@ OVSeg Training Script.
 
 This script is a simplified version of the training script in detectron2/tools.
 """
+import sitecustomize  # noqa: F401
+
 import copy
 import itertools
 import logging
@@ -16,6 +18,7 @@ from typing import Any, Dict, List, Set
 
 import detectron2.utils.comm as comm
 import torch
+import wandb
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -52,6 +55,17 @@ from open_vocab_seg.evaluation import (
 )
 from open_vocab_seg.utils.events import WandbWriter, setup_wandb
 from open_vocab_seg.utils.post_process_utils import dense_crf_post_process
+
+
+def _flatten_eval_results(results, prefix="eval"):
+    flat_results = {}
+    for key, value in results.items():
+        current_key = f"{prefix}/{key}" if prefix else str(key)
+        if isinstance(value, dict):
+            flat_results.update(_flatten_eval_results(value, current_key))
+        elif isinstance(value, (int, float)):
+            flat_results[current_key] = value
+    return flat_results
 
 
 class Trainer(DefaultTrainer):
@@ -266,8 +280,7 @@ def setup(args):
     cfg.freeze()
     default_setup(cfg, args)
     # Setup logger for "ovseg" module
-    if not args.eval_only:
-        setup_wandb(cfg, args)
+    setup_wandb(cfg, args)
     setup_logger(
         output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="ovseg"
     )
@@ -287,8 +300,12 @@ def main(args):
             res = Trainer.test_with_TTA(cfg, model)
         else:
             res = Trainer.test(cfg, model)
+        if comm.is_main_process() and wandb.run is not None:
+            wandb.log(_flatten_eval_results(res))
         if comm.is_main_process():
             verify_results(cfg, res)
+            if wandb.run is not None:
+                wandb.finish()
         return res
 
     trainer = Trainer(cfg)

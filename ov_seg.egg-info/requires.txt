@@ -1,0 +1,35 @@
+braceexpand
+clip
+cython
+detectron2
+fire
+h5py
+numpy<2
+opencv-python
+pandas<3
+scipy
+setuptools==59.5.0
+shapely
+tabulate
+timm
+torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.7.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
+torch-ema
+torchmetrics==0.11.4
+torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.22.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
+wandb
+webdataset>=0.2.5
+
+[clip]
+clip
+
+[demo]
+gradio
+huggingface-hub<1
+
+[open-clip]
+open_clip_torch
+requests
+
+[test]
+pytest==7.0.1
+pytest-xdist==2.5.0
