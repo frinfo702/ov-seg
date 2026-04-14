@@ -9,3 +9,4 @@ datasets/*/*.jpg
 datasets/**/*.jpg
 wandb/
 output/
+checkpoints/
