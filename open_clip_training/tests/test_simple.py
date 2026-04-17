@@ -1,13 +1,17 @@
-
-import torch
-from PIL import Image
-from open_clip import tokenizer
-import open_clip
 import os
+
+import open_clip
+import torch
+from open_clip import tokenizer
+from PIL import Image
+
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
+
 def test_inference():
-    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32-quickgelu', pretrained='laion400m_e32')
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        "ViT-B-32-quickgelu", pretrained="laion400m_e32"
+    )
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
 

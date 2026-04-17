@@ -1,25 +1,27 @@
-# OpenCLIP training for OVSeg 
+# OpenCLIP training for OVSeg
 
 Note: This part is verbose and may contain many functions that are unused in OVSeg.
 
-## Data 
+## Data
+
 ```bash
 cd open_clip_training
 mkdir openclip_data
 ```
 
-Please download and extract data [here](https://drive.google.com/drive/folders/1Yd1ZP_GZrJFm9XUroxkTWGkyvqu0V_Zv?usp=sharing). 
+Please download and extract data [here](https://drive.google.com/drive/folders/1Yd1ZP_GZrJFm9XUroxkTWGkyvqu0V_Zv?usp=sharing).
 [Gdown](https://github.com/wkentaro/gdown) is a recommendation tool to download file from Google Drive.
 Under openclip_data directory, open_clip will look for datasets in the structure described below.
+
 ```
 $OPENCLIP_DATA/
   # gdown 13_DVGGNXI2dw3ELhJlfJF6-z5EC9WHtg
   # Change relative filepath to absolute filepath: sed -i "s#coco_gt_171cls#$(pwd)/&#" coco_gt_171cls.csv
-  coco_gt_171cls.csv          # meta data for COCO gt masks with 171 categories, Case (1) im Table 2 
+  coco_gt_171cls.csv          # meta data for COCO gt masks with 171 categories, Case (1) im Table 2
   # gdown 1Y033-8uwTmN747yJa6s4JkArFr7QbFFQ
   # Change relative filepath to absolute filepath: sed -i "s#coco_proposal_1cap#$(pwd)/&#" coco_proposal_1cap.csv
   coco_proposal_1cap.csv      # meta data for COCO proposal masks with 1 caption, Case (3) im Table 2
-  # gdown 1lLlUXvaTkCFT6pObgqTkCEZ9CuWBCMvr 
+  # gdown 1lLlUXvaTkCFT6pObgqTkCEZ9CuWBCMvr
   # tar -xzf coco_proposal_1cap.tar.gz
   coco_proposal_1cap/         # images of coco_proposal_1cap.csv
   # gdown 1cycn5BpUjkSTIysEtxnAUFrgUEnQ5_pW
@@ -32,7 +34,7 @@ $OPENCLIP_DATA/
 
 ## Finetuning CLIP
 
-The vallina implementation of finetuning CLIP. 
+The vallina implementation of finetuning CLIP.
 
 ```bash
 cd open_clip_training
@@ -52,7 +54,7 @@ python train_net.py --num-gpu 8 --eval-only --config-file configs/ovseg_swinB_vi
 
 ## Mask prompt tuning
 
-After you obatin the finetuned CLIP, you can try an additional mask prompt tuning to further enhance the performance. Change ``` --pretrained``` to your own checkpoint.
+After you obatin the finetuned CLIP, you can try an additional mask prompt tuning to further enhance the performance. Change ` --pretrained` to your own checkpoint.
 
 ```bash
 cd open_clip_training
@@ -70,10 +72,11 @@ The goal of this repository is to enable training models with contrastive image-
 Specifically, a ResNet-50 model trained with our codebase on OpenAI's [15 million image subset of YFCC](https://github.com/openai/CLIP/blob/main/data/yfcc100m.md) achieves **32.7%** top-1 accuracy on ImageNet. OpenAI's CLIP model reaches **31.3%** when trained on the same subset of YFCC. For ease of experimentation, we also provide code for training on the 3 million images in the [Conceptual Captions](https://ai.google.com/research/ConceptualCaptions/download) dataset, where a ResNet-50x4 trained with our codebase reaches 22.2% top-1 ImageNet accuracy.
 
 We further this with a replication study on a dataset of comparable size to OpenAI's. Using [LAION-400M](https://arxiv.org/abs/2111.02114), we train CLIP with a
-  * ViT-B/32 and achieve an accuracy of **62.9%**, comparable to OpenAI's **63.2%**, zero-shot top-1 on ImageNet1k
-  * ViT-B/16 and achieve an accuracy of **67.1%**, comparable to OpenAI's **68.3%** (as measured here, 68.6% in paper)
-  * ViT-B/16+ 240x240 (~50% more FLOPS than B/16 224x224) and achieve an accuracy of **69.2%**
-  * ViT-L/14 and achieve an accuracy of **72.77%**, vs OpenAI's **75.5%** (as measured here, 75.3% in paper)
+
+- ViT-B/32 and achieve an accuracy of **62.9%**, comparable to OpenAI's **63.2%**, zero-shot top-1 on ImageNet1k
+- ViT-B/16 and achieve an accuracy of **67.1%**, comparable to OpenAI's **68.3%** (as measured here, 68.6% in paper)
+- ViT-B/16+ 240x240 (~50% more FLOPS than B/16 224x224) and achieve an accuracy of **69.2%**
+- ViT-L/14 and achieve an accuracy of **72.77%**, vs OpenAI's **75.5%** (as measured here, 75.3% in paper)
 
 As we describe in more detail [below](#why-are-low-accuracy-clip-models-interesting), CLIP models in a medium accuracy regime already allow us to draw conclusions about the robustness of larger CLIP models since the models follow [reliable scaling laws](https://arxiv.org/abs/2107.04649).
 
@@ -84,8 +87,8 @@ Note that portions of `src/open_clip/` modelling and tokenizer code are adaptati
 ## Approach
 
 | ![CLIP](https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/CLIP.png) |
-|:--:|
-| Image Credit: https://github.com/openai/CLIP |
+| :-----------------------------------------------------------------------------------: |
+|                     Image Credit: https://github.com/openai/CLIP                      |
 
 ## Usage
 
@@ -118,10 +121,9 @@ To compute billions of embeddings efficiently, you can use [clip-retrieval](http
 
 ## Fine-tuning on classification tasks
 
-This repository is focused on training CLIP models. To fine-tune a *trained* zero-shot model on a downstream classification task such as ImageNet, please see [our other repository: WiSE-FT](https://github.com/mlfoundations/wise-ft). The [WiSE-FT repository](https://github.com/mlfoundations/wise-ft) contains code for our paper on [Robust Fine-tuning of Zero-shot Models](https://arxiv.org/abs/2109.01903), in which we introduce a technique for fine-tuning zero-shot models while preserving robustness under distribution shift.
+This repository is focused on training CLIP models. To fine-tune a _trained_ zero-shot model on a downstream classification task such as ImageNet, please see [our other repository: WiSE-FT](https://github.com/mlfoundations/wise-ft). The [WiSE-FT repository](https://github.com/mlfoundations/wise-ft) contains code for our paper on [Robust Fine-tuning of Zero-shot Models](https://arxiv.org/abs/2109.01903), in which we introduce a technique for fine-tuning zero-shot models while preserving robustness under distribution shift.
 
 ## Data
-
 
 ### Conceptual Captions
 
@@ -135,7 +137,6 @@ python3 src/data/gather_cc.py path/to/Train_GCC-training.tsv path/to/Validation_
 
 Our training set contains 2.89M images, and our validation set contains 13K images.
 
-
 ### YFCC and other datasets
 
 In addition to specifying the training data via CSV files as mentioned above, our codebase also supports [webdataset](https://github.com/webdataset/webdataset), which is recommended for larger scale datasets. The expected format is a series of `.tar` files. Each of these `.tar` files should contain two files for each training example, one for the image and one for the corresponding text. Both files should have the same name but different extensions. For instance, `shard_001.tar` could contain files such as `abc.jpg` and `abc.txt`. You can learn more about `webdataset` at [https://github.com/webdataset/webdataset](https://github.com/webdataset/webdataset). We use `.tar` files with 1,000 data points each, which we create using [tarp](https://github.com/webdataset/tarp).
@@ -143,7 +144,6 @@ In addition to specifying the training data via CSV files as mentioned above, ou
 You can download the YFCC dataset from [Multimedia Commons](http://mmcommons.org/).
 Similar to OpenAI, we used a subset of YFCC to reach the aforementioned accuracy numbers.
 The indices of images in this subset are in [OpenAI's CLIP repository](https://github.com/openai/CLIP/blob/main/data/yfcc100m.md).
-
 
 ## Training CLIP
 
@@ -162,6 +162,7 @@ Install conda PyTorch as per https://pytorch.org/get-started/locally/
 #### Virtualenv
 
 openclip also can be used with virtualenv with these lines:
+
 ```
 python3 -m venv .env
 source .env/bin/activate
@@ -206,7 +207,7 @@ python -m training.main \
     --model RN50
 ```
 
-Note: `imagenet-val` is the path to the *validation* set of ImageNet for zero-shot evaluation, not the training set!
+Note: `imagenet-val` is the path to the _validation_ set of ImageNet for zero-shot evaluation, not the training set!
 You can remove this argument if you do not want to perform zero-shot evaluation on ImageNet throughout training. Note that the `val` folder should contain subfolders. If it doest not, please use [this script](https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh).
 
 ### Multi-GPU and Beyond
@@ -319,6 +320,7 @@ When training a RN50 on YFCC the same hyperparameters as above are used, with th
 Note that to use another model, like `ViT-B/32` or `RN50x4` or `RN50x16` or `ViT-B/16`, specify with `--model RN50x4`.
 
 ### Launch tensorboard:
+
 ```bash
 tensorboard --logdir=logs/tensorboard/ --port=7777
 ```
@@ -358,7 +360,7 @@ We replicate OpenAI's results on ViT-B/32, reaching a top-1 ImageNet-1k zero-sho
 
 <img src="https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/laion_clip_zeroshot.png" width="700">
 
-__Zero-shot comparison (courtesy of Andreas Fürst)__
+**Zero-shot comparison (courtesy of Andreas Fürst)**
 <img src="https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/laion_openai_compare_b32.jpg" width="700">
 
 ViT-B/32 was trained with 128 A100 (40 GB) GPUs for ~36 hours, 4600 GPU-hours. The per-GPU batch size was 256 for a global batch size of 32768. 256 is much lower than it could have been (~320-384) due to being sized initially before moving to 'local' contrastive loss.
@@ -378,9 +380,10 @@ ViT-B/16 was trained with 176 A100 (40 GB) GPUS for ~61 hours, 10700 GPU-hours. 
 The B/16+ 240x240 LAION400M training reached a top-1 ImageNet-1k zero-shot validation score of 69.21.
 
 This model is the same depth as the B/16, but increases the
-  * vision width from 768 -> 896
-  * text width from 512 -> 640
-  * the resolution 224x224 -> 240x240 (196 -> 225 tokens)
+
+- vision width from 768 -> 896
+- text width from 512 -> 640
+- the resolution 224x224 -> 240x240 (196 -> 225 tokens)
 
 <img src="https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/laion_clip_zeroshot_b16_plus_240.png" width="700">
 
@@ -401,6 +404,7 @@ ViT-L/14 was trained with 400 A100 (40 GB) GPUS for ~127 hours, 50800 GPU-hours.
 A ~2B sample subset of LAION-5B with english captions (https://huggingface.co/datasets/laion/laion2B-en)
 
 #### ViT-B/32 224x224
+
 A ViT-B/32 trained on LAION-2B, reaching a top-1 ImageNet-1k zero-shot accuracy of 65.62%.
 
 <img src="https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/laion2b_clip_zeroshot_b32.png" width="700">
@@ -411,12 +415,12 @@ ViT-B/32 was trained with 112 A100 (40 GB) GPUs. The per-GPU batch size was 416 
 
 Below are checkpoints of models trained on YFCC-15M, along with their zero-shot top-1 accuracies on ImageNet and ImageNetV2. These models were trained using 8 GPUs and the same hyperparameters described in the "Sample running code" section, with the exception of `lr=5e-4` and `epochs=32`.
 
-* [ResNet-50](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn50-quickgelu-yfcc15m-455df137.pt) (32.7% / 27.9%)
-* [ResNet-101](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn101-quickgelu-yfcc15m-3e04b30e.pt) (34.8% / 30.0%)
+- [ResNet-50](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn50-quickgelu-yfcc15m-455df137.pt) (32.7% / 27.9%)
+- [ResNet-101](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn101-quickgelu-yfcc15m-3e04b30e.pt) (34.8% / 30.0%)
 
 #### CC12M - https://github.com/google-research-datasets/conceptual-12m
 
-* [ResNet-50](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn50-quickgelu-cc12m-f000538c.pt) (36.45%)
+- [ResNet-50](https://github.com/mlfoundations/open_clip/releases/download/v0.2-weights/rn50-quickgelu-cc12m-f000538c.pt) (36.45%)
 
 ### Pretrained Model Interface
 
@@ -479,13 +483,13 @@ are shown as stars.
 ![CLIP scatter plot](https://raw.githubusercontent.com/mlfoundations/open_clip/main/docs/effective_robustness.png)
 
 As observed by [Taori et al., 2020](https://arxiv.org/abs/2007.00644) and [Miller et al., 2021](https://arxiv.org/abs/2107.04649), the in-distribution
-and out-of-distribution accuracies of models trained on ImageNet follow a predictable linear trend (the red line in the above plot). *Effective robustness*
+and out-of-distribution accuracies of models trained on ImageNet follow a predictable linear trend (the red line in the above plot). _Effective robustness_
 quantifies robustness as accuracy beyond this baseline, i.e., how far a model lies above the red line. Ideally a model would not suffer from distribution shift and fall on the y = x line ([trained human labelers are within a percentage point of the y = x line](http://proceedings.mlr.press/v119/shankar20c.html)).
 
 Even though the CLIP models trained with
 this codebase achieve much lower accuracy than those trained by OpenAI, our models still lie on the same
 trend of improved effective robustness (the purple line). Therefore, we can study what makes
-CLIP robust without requiring industrial-scale compute. 
+CLIP robust without requiring industrial-scale compute.
 
 For more information on effective robustness, please see:
 
@@ -505,13 +509,14 @@ Current development of this repository is led by [Ross Wightman](https://rwightm
 
 The original version of this repository is from a group of researchers at UW, Google, Stanford, Amazon, Columbia, and Berkeley.
 
-[Gabriel Ilharco*](http://gabrielilharco.com/), [Mitchell Wortsman*](https://mitchellnw.github.io/), [Nicholas Carlini](https://nicholas.carlini.com/), [Rohan Taori](https://www.rohantaori.com/), [Achal Dave](http://www.achaldave.com/), [Vaishaal Shankar](http://vaishaal.com/), [John Miller](https://people.eecs.berkeley.edu/~miller_john/), [Hongseok Namkoong](https://hsnamkoong.github.io/), [Hannaneh Hajishirzi](https://homes.cs.washington.edu/~hannaneh/), [Ali Farhadi](https://homes.cs.washington.edu/~ali/), [Ludwig Schmidt](https://people.csail.mit.edu/ludwigs/)
+[Gabriel Ilharco\*](http://gabrielilharco.com/), [Mitchell Wortsman\*](https://mitchellnw.github.io/), [Nicholas Carlini](https://nicholas.carlini.com/), [Rohan Taori](https://www.rohantaori.com/), [Achal Dave](http://www.achaldave.com/), [Vaishaal Shankar](http://vaishaal.com/), [John Miller](https://people.eecs.berkeley.edu/~miller_john/), [Hongseok Namkoong](https://hsnamkoong.github.io/), [Hannaneh Hajishirzi](https://homes.cs.washington.edu/~hannaneh/), [Ali Farhadi](https://homes.cs.washington.edu/~ali/), [Ludwig Schmidt](https://people.csail.mit.edu/ludwigs/)
 
 Special thanks to [Jong Wook Kim](https://jongwook.kim/) and [Alec Radford](https://github.com/Newmu) for help with reproducing CLIP!
 
 ## Citing
 
 If you found this repository useful, please consider citing:
+
 ```bibtex
 @software{ilharco_gabriel_2021_5143773,
   author       = {Ilharco, Gabriel and
