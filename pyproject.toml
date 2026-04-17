@@ -16,6 +16,7 @@ dependencies = [
     "fire",
     "h5py",
     "numpy<2",
+    "open-clip-torch>=1.3.0",
     "opencv-python",
     "pandas<3",
     "scipy",
