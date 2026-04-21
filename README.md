@@ -13,8 +13,7 @@ Computer Vision and Pattern Recognition Conference (CVPR), 2023
 <img src="resources/ovseg.gif" width="100%">
 </p>
 
-
-## Installation    
+## Installation
 
 Please see [installation guide](./INSTALL.md).
 
@@ -44,7 +43,6 @@ The majority of OVSeg is licensed under a
 [cc-by-nc-shield]: https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg
 
 However portions of the project are under separate license terms: CLIP and ZSSEG are licensed under the [MIT license](https://github.com/openai/CLIP/blob/main/LICENSE); MaskFormer is licensed under the [CC-BY-NC](https://github.com/facebookresearch/MaskFormer/blob/main/LICENSE); openclip is licensed under the license at [its repo](https://github.com/mlfoundations/open_clip/blob/main/LICENSE).
-
 
 ## Citing OVSeg :pray:
 
