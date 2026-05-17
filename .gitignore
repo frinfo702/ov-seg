@@ -20,3 +20,4 @@ output/
 checkpoints/
 .agents/
 **/.orchestra-skills.json
+resources/
