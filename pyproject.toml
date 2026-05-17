@@ -30,6 +30,8 @@ dependencies = [
     "torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.7.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl",
     "torch-ema",
     "torchmetrics==0.11.4",
+    "transformers>=4.38.0",
+    "accelerate>=0.25.0",
     "torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.22.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl",
     "wandb",
     "webdataset>=0.2.5",
@@ -55,3 +57,57 @@ detectron2 = ["torch", "wheel"]
 
 [tool.setuptools.packages.find]
 include = ["open_vocab_seg*"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "F",   # pyflakes
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "ANN", # annotations
+]
+ignore = [
+    "ANN101", # missing-type-self (too verbose for Python 3.9)
+    "ANN102", # missing-type-cls
+    "ANN002", # missing-type-*args
+    "ANN003", # missing-type-**kwargs
+    "ANN401", # Any type (needed for external libs)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+strict_optional = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "detectron2.*",
+    "torch.*",
+    "cv2.*",
+    "gradio.*",
+    "fvcore.*",
+]
+ignore_missing_imports = true
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv"
+]
