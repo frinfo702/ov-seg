@@ -76,7 +76,7 @@ class AttentionPool2d(nn.Module):
     ):
         super().__init__()
         self.positional_embedding = nn.Parameter(
-            torch.randn(spacial_dim ** 2 + 1, embed_dim) / embed_dim ** 0.5
+            torch.randn(spacial_dim**2 + 1, embed_dim) / embed_dim**0.5
         )
         self.k_proj = nn.Linear(embed_dim, embed_dim)
         self.q_proj = nn.Linear(embed_dim, embed_dim)
@@ -307,7 +307,7 @@ class VisionTransformer(nn.Module):
             bias=False,
         )
 
-        scale = width ** -0.5
+        scale = width**-0.5
         self.class_embedding = nn.Parameter(scale * torch.randn(width))
         self.positional_embedding = nn.Parameter(
             scale * torch.randn((input_resolution // patch_size) ** 2 + 1, width)
@@ -322,7 +322,9 @@ class VisionTransformer(nn.Module):
 
         self.mask_pool = nn.AvgPool2d(patch_size, stride=patch_size)
         self.mask_prompt_depth = mask_prompt_depth
-        self.mask_embedding = nn.Parameter(torch.zeros(self.mask_prompt_depth, self.grid_size * self.grid_size, width))
+        self.mask_embedding = nn.Parameter(
+            torch.zeros(self.mask_prompt_depth, self.grid_size * self.grid_size, width)
+        )
 
     def forward(self, x: torch.Tensor, m: torch.Tensor = None):
         x = self.conv1(x)  # shape = [*, width, grid, grid]
@@ -337,12 +339,23 @@ class VisionTransformer(nn.Module):
             m = self.mask_pool(m).reshape(m.shape[0], -1).unsqueeze(-1)
             m = torch.ceil(m)
             if self.mask_embedding.shape[1] == 1:
-                mask_embedding = self.mask_embedding.to(x.dtype).repeat(1, x.shape[1], 1)
+                mask_embedding = self.mask_embedding.to(x.dtype).repeat(
+                    1, x.shape[1], 1
+                )
             else:
                 mask_embedding = self.mask_embedding.to(x.dtype)
             x = x * m + mask_embedding[0].unsqueeze(0) * (1 - m)
 
-        x = torch.cat([self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
+        x = torch.cat(
+            [
+                self.class_embedding.to(x.dtype)
+                + torch.zeros(
+                    x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device
+                ),
+                x,
+            ],
+            dim=1,
+        )  # shape = [*, grid ** 2 + 1, width]
         x = x + self.positional_embedding.to(x.dtype)
         x = self.ln_pre(x)
 
@@ -352,8 +365,9 @@ class VisionTransformer(nn.Module):
                 d = i + 1
                 x = blk(x)
                 if d < self.mask_prompt_depth:
-                    masked_x = x[1:, :, :] * m.permute(1, 0, 2) + \
-                               mask_embedding[d].unsqueeze(0).permute(1, 0, 2) * (1 - m.permute(1, 0, 2))
+                    masked_x = x[1:, :, :] * m.permute(1, 0, 2) + mask_embedding[
+                        d
+                    ].unsqueeze(0).permute(1, 0, 2) * (1 - m.permute(1, 0, 2))
                     x = torch.cat([x[:1, :, :], masked_x], dim=0)
         else:
             x = self.transformer(x)
@@ -365,7 +379,6 @@ class VisionTransformer(nn.Module):
             x = x @ self.proj
 
         return x
-
 
 
 class CLIP(nn.Module):
@@ -435,7 +448,7 @@ class CLIP(nn.Module):
 
         if isinstance(self.visual, ModifiedResNet):
             if self.visual.attnpool is not None:
-                std = self.visual.attnpool.c_proj.in_features ** -0.5
+                std = self.visual.attnpool.c_proj.in_features**-0.5
                 nn.init.normal_(self.visual.attnpool.q_proj.weight, std=std)
                 nn.init.normal_(self.visual.attnpool.k_proj.weight, std=std)
                 nn.init.normal_(self.visual.attnpool.v_proj.weight, std=std)
@@ -451,10 +464,10 @@ class CLIP(nn.Module):
                     if name.endswith("bn3.weight"):
                         nn.init.zeros_(param)
 
-        proj_std = (self.transformer.width ** -0.5) * (
+        proj_std = (self.transformer.width**-0.5) * (
             (2 * self.transformer.layers) ** -0.5
         )
-        attn_std = self.transformer.width ** -0.5
+        attn_std = self.transformer.width**-0.5
         fc_std = (2 * self.transformer.width) ** -0.5
         for block in self.transformer.resblocks:
             nn.init.normal_(block.attn.in_proj_weight, std=attn_std)
@@ -463,7 +476,7 @@ class CLIP(nn.Module):
             nn.init.normal_(block.mlp.c_proj.weight, std=proj_std)
 
         if self.text_projection is not None:
-            nn.init.normal_(self.text_projection, std=self.transformer.width ** -0.5)
+            nn.init.normal_(self.text_projection, std=self.transformer.width**-0.5)
 
     def build_attention_mask(self):
         # lazily create causal attention mask, with full attention between the vision tokens
@@ -559,7 +572,7 @@ def build_model(state_dict: dict, mask_prompt_depth: int = 0):
         )
         image_resolution = vision_patch_size * grid_size
     else:
-        assert mask_prompt_depth == 0, 'ResNets do not support mask prompt tuning'
+        assert mask_prompt_depth == 0, "ResNets do not support mask prompt tuning"
         counts: list = [
             len(
                 set(
@@ -577,7 +590,7 @@ def build_model(state_dict: dict, mask_prompt_depth: int = 0):
         )
         vision_patch_size = None
         assert (
-            output_width ** 2 + 1
+            output_width**2 + 1
             == state_dict["visual.attnpool.positional_embedding"].shape[0]
         )
         image_resolution = output_width * 32
