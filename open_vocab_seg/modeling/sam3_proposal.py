@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -35,6 +36,38 @@ class SAM3ProposalGenerator(nn.Module):
         self.processor = None
         self._backend: str = self._resolve_backend(model_name)
 
+    @staticmethod
+    def _ensure_sam3_package_importable() -> bool:
+        """Ensure the real sam3 package (sam3/sam3/) is importable.
+
+        The top-level sam3/ directory (git submodule root, no __init__.py)
+        creates a namespace package that shadows the editable-installed real
+        package.  This method uses importlib to load the real package from
+        sam3/sam3/__init__.py directly and registers it in sys.modules so
+        that subsequent ``from sam3 import ...`` statements resolve correctly.
+        """
+        import importlib.util
+
+        real_init = (
+            Path(__file__).resolve().parent.parent.parent
+            / "sam3" / "sam3" / "__init__.py"
+        )
+        if not real_init.exists():
+            return False
+
+        try:
+            spec = importlib.util.spec_from_file_location("sam3", real_init)
+            if spec is None or spec.loader is None:
+                return False
+            sam3_mod = importlib.util.module_from_spec(spec)
+            sys.modules["sam3"] = sam3_mod
+            spec.loader.exec_module(sam3_mod)
+            return True
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return False
+
     def _resolve_backend(self, model_name: str) -> str:
         import importlib
 
@@ -56,18 +89,39 @@ class SAM3ProposalGenerator(nn.Module):
                     pass
 
         # 2. sam3 package
-        try:
-            from sam3.model.sam3_image_processor import Sam3Processor
-            from sam3.model_builder import build_sam3_image_model
-        except ImportError:
+        if not self._ensure_sam3_package_importable():
             pass
         else:
-            m = build_sam3_image_model()
-            self.model = m.eval()
-            self.processor = Sam3Processor(m)
-            for p in self.model.parameters():
-                p.requires_grad = False
-            return "sam3_package"
+            try:
+                from sam3.model.sam3_image_processor import Sam3Processor
+                from sam3.model_builder import build_sam3_image_model
+            except ImportError:
+                pass
+            else:
+                # Monkey-patch SAM3's MLP: perflib.fused.addmm_act casts
+                # fc1 activations to bfloat16, but fc2 expects float32,
+                # causing a dtype mismatch.  Replace Mlp.forward with a
+                # simple linear+activation path instead of the fused kernel.
+                from sam3.model import vitdet as _vitdet
+                from sam3.perflib import fused as _fused
+
+                def _mlp_forward(self, x):
+                    x = self.fc1(x)
+                    x = self.act(x)
+                    x = self.drop1(x)
+                    x = self.norm(x)
+                    x = self.fc2(x)
+                    x = self.drop2(x)
+                    return x
+
+                _vitdet.Mlp.forward = _mlp_forward
+
+                m = build_sam3_image_model()
+                self.model = m.eval()
+                self.processor = Sam3Processor(m)
+                for p in self.model.parameters():
+                    p.requires_grad = False
+                return "sam3_package"
 
         # 3. subprocess
         venv_python = self._find_sam3_python()
@@ -191,8 +245,14 @@ class SAM3ProposalGenerator(nn.Module):
             masks_np: list = output["masks"]
             scores_list: list = output["scores"]
             for m, s in zip(masks_np, scores_list):
-                mask_t = torch.from_numpy(np.asarray(m, dtype=np.float32)).to(device)
-                score_t = torch.tensor(float(s), device=device)
+                if isinstance(m, torch.Tensor):
+                    mask_t = m.float().to(device)
+                else:
+                    mask_t = torch.from_numpy(np.asarray(m, dtype=np.float32)).to(device)
+                if isinstance(s, torch.Tensor):
+                    score_t = s.to(device)
+                else:
+                    score_t = torch.tensor(float(s), device=device)
                 all_masks.append(mask_t)
                 all_scores.append(score_t)
 

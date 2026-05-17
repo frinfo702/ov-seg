@@ -119,6 +119,14 @@ def add_our_config(cfg):
     cfg.MODEL.CLIP_ADAPTER.MASK_PROMPT_DEPTH = 3
     cfg.MODEL.CLIP_ADAPTER.MASK_PROMPT_FWD = False
 
+    # sam3
+    cfg.MODEL.SAM3 = CN()
+    cfg.MODEL.SAM3.ENABLED = False
+    cfg.MODEL.SAM3.MODEL_NAME = "facebook/sam3"
+    cfg.MODEL.SAM3.MASK_THRESHOLD = 0.5
+    cfg.MODEL.SAM3.MAX_MASKS = 200
+    cfg.MODEL.SAM3.PROMPT_SOURCE = "dataset"
+
     # wandb
     cfg.WANDB = CN()
     cfg.WANDB.PROJECT = "open_vocab_seg"
