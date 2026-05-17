@@ -3,7 +3,6 @@ import os
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_sem_seg
-from typing import Any, Dict, Tuple
 
 PASCALCONTEX59_NAMES = (
     "aeroplane",
@@ -531,14 +530,14 @@ PASCALCONTEX459_NAMES = (
 )
 
 
-def _get_voc_meta(cat_list: Tuple[str, ...]) -> Dict[str, Any]:
+def _get_voc_meta(cat_list):
     ret = {
         "stuff_classes": cat_list,
     }
     return ret
 
 
-def register_pascal_context_59(root: str) -> None:
+def register_pascal_context_59(root):
     root = os.path.join(root, "VOCdevkit/VOC2010")
     meta = _get_voc_meta(PASCALCONTEX59_NAMES)
     for name, image_dirname, sem_seg_dirname in [
@@ -561,7 +560,7 @@ def register_pascal_context_59(root: str) -> None:
             **meta,
         )
 
-def register_pascal_context_459(root: str) -> None:
+def register_pascal_context_459(root):
     root = os.path.join(root, "VOCdevkit/VOC2010")
     meta = _get_voc_meta(PASCALCONTEX459_NAMES)
     for name, image_dirname, sem_seg_dirname in [

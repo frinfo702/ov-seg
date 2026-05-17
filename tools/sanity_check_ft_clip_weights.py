@@ -1,6 +1,5 @@
-from collections import OrderedDict
-
 import torch
+from collections import OrderedDict
 
 # PATH to trained MaskFormer model (containing a CLIP classifier)
 ovseg_model = torch.load('/home/jeffliang/ov-seg/weights/ovseg_swinbase_vitL14_mpt_only.pth', 'cpu')

@@ -11,7 +11,7 @@ import tqdm
 from PIL import Image
 
 
-def convert_pc59(mask_path: str, new_mask_path: str, pc59_dict: dict[int, int]) -> None:
+def convert_pc59(mask_path, new_mask_path, pc59_dict):
     mat = scipy.io.loadmat(mask_path)
     mask = mat["LabelMap"]
 
@@ -24,7 +24,7 @@ def convert_pc59(mask_path: str, new_mask_path: str, pc59_dict: dict[int, int]) 
     Image.fromarray(mask_copy).save(new_mask_path, "PNG")
 
 
-def convert_pc459(mask_path: str, new_mask_path: str) -> None:
+def convert_pc459(mask_path, new_mask_path):
     mat = scipy.io.loadmat(mask_path)
     mask = mat["LabelMap"]
     mask = mask - 1
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     print("Caution: we only generate the validation set!")
     pc_path = dataset_dir / "VOCdevkit/VOC2010"
 
-    val_list = open(pc_path / "pascalcontext_val.txt")
-    pc459_labels = open(pc_path / "labels.txt")
-    pc59_labels = open(pc_path / "59_labels.txt")
+    val_list = open(pc_path / "pascalcontext_val.txt", "r")
+    pc459_labels = open(pc_path / "labels.txt", "r")
+    pc59_labels = open(pc_path / "59_labels.txt", "r")
 
     pc459_dict = {}
     for line in pc459_labels.readlines():
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     pc59_dict = {}
     for i, line in enumerate(pc59_labels.readlines()):
         name = line.split(":")[-1].strip()
-        if name != "":
+        if name is not "":
             pc59_dict[i] = pc459_dict[name]
 
     pc459_dir = pc_path / "annotations_detectron2" / "pc459_val"

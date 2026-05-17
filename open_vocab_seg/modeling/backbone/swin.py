@@ -9,16 +9,14 @@
 # Modified by Bowen Cheng from https://github.com/SwinTransformer/Swin-Transformer-Semantic-Segmentation/blob/main/mmseg/models/backbones/swin_transformer.py
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-from collections.abc import Sequence
-from typing import Any, Optional
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
-from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+
+from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 
 
 class Mlp(nn.Module):
@@ -26,12 +24,12 @@ class Mlp(nn.Module):
 
     def __init__(
         self,
-        in_features: int,
-        hidden_features: Optional[int] = None,
-        out_features: Optional[int] = None,
-        act_layer: Any = nn.GELU,
-        drop: float = 0.0,
-    ) -> None:
+        in_features,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.GELU,
+        drop=0.0,
+    ):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -40,7 +38,7 @@ class Mlp(nn.Module):
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
@@ -49,7 +47,7 @@ class Mlp(nn.Module):
         return x
 
 
-def window_partition(x: torch.Tensor, window_size: int) -> torch.Tensor:
+def window_partition(x, window_size):
     """
     Args:
         x: (B, H, W, C)
@@ -65,7 +63,7 @@ def window_partition(x: torch.Tensor, window_size: int) -> torch.Tensor:
     return windows
 
 
-def window_reverse(windows: torch.Tensor, window_size: int, H: int, W: int) -> torch.Tensor:
+def window_reverse(windows, window_size, H, W):
     """
     Args:
         windows: (num_windows*B, window_size, window_size, C)
@@ -98,14 +96,14 @@ class WindowAttention(nn.Module):
 
     def __init__(
         self,
-        dim: int,
-        window_size: tuple[int, int],
-        num_heads: int,
-        qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
-        attn_drop: float = 0.0,
-        proj_drop: float = 0.0,
-    ) -> None:
+        dim,
+        window_size,
+        num_heads,
+        qkv_bias=True,
+        qk_scale=None,
+        attn_drop=0.0,
+        proj_drop=0.0,
+    ):
 
         super().__init__()
         self.dim = dim
@@ -144,7 +142,7 @@ class WindowAttention(nn.Module):
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x, mask=None):
         """Forward function.
         Args:
             x: input features with shape of (num_windows*B, N, C)
@@ -166,7 +164,7 @@ class WindowAttention(nn.Module):
         attn = q @ k.transpose(-2, -1)
 
         relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index.view(-1)  # pyright: ignore[reportCallIssue]
+            self.relative_position_index.view(-1)
         ].view(
             self.window_size[0] * self.window_size[1],
             self.window_size[0] * self.window_size[1],
@@ -214,19 +212,19 @@ class SwinTransformerBlock(nn.Module):
 
     def __init__(
         self,
-        dim: int,
-        num_heads: int,
-        window_size: int = 7,
-        shift_size: int = 0,
-        mlp_ratio: float = 4.0,
-        qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
-        drop: float = 0.0,
-        attn_drop: float = 0.0,
-        drop_path: float = 0.0,
-        act_layer: Any = nn.GELU,
-        norm_layer: Any = nn.LayerNorm,
-    ) -> None:
+        dim,
+        num_heads,
+        window_size=7,
+        shift_size=0,
+        mlp_ratio=4.0,
+        qkv_bias=True,
+        qk_scale=None,
+        drop=0.0,
+        attn_drop=0.0,
+        drop_path=0.0,
+        act_layer=nn.GELU,
+        norm_layer=nn.LayerNorm,
+    ):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -240,7 +238,7 @@ class SwinTransformerBlock(nn.Module):
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(
             dim,
-            window_size=to_2tuple(self.window_size),  # pyright: ignore[reportArgumentType]
+            window_size=to_2tuple(self.window_size),
             num_heads=num_heads,
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
@@ -258,10 +256,10 @@ class SwinTransformerBlock(nn.Module):
             drop=drop,
         )
 
-        self.H: int = 0
-        self.W: int = 0
+        self.H = None
+        self.W = None
 
-    def forward(self, x: torch.Tensor, mask_matrix: torch.Tensor) -> torch.Tensor:
+    def forward(self, x, mask_matrix):
         """Forward function.
         Args:
             x: Input feature, tensor size (B, H*W, C).
@@ -337,13 +335,13 @@ class PatchMerging(nn.Module):
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
     """
 
-    def __init__(self, dim: int, norm_layer: Any = nn.LayerNorm) -> None:
+    def __init__(self, dim, norm_layer=nn.LayerNorm):
         super().__init__()
         self.dim = dim
         self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
         self.norm = norm_layer(4 * dim)
 
-    def forward(self, x: torch.Tensor, H: int, W: int) -> torch.Tensor:
+    def forward(self, x, H, W):
         """Forward function.
         Args:
             x: Input feature, tensor size (B, H*W, C).
@@ -392,20 +390,20 @@ class BasicLayer(nn.Module):
 
     def __init__(
         self,
-        dim: int,
-        depth: int,
-        num_heads: int,
-        window_size: int = 7,
-        mlp_ratio: float = 4.0,
-        qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
-        drop: float = 0.0,
-        attn_drop: float = 0.0,
-        drop_path: float = 0.0,
-        norm_layer: Any = nn.LayerNorm,
-        downsample: Optional[Any] = None,
-        use_checkpoint: bool = False,
-    ) -> None:
+        dim,
+        depth,
+        num_heads,
+        window_size=7,
+        mlp_ratio=4.0,
+        qkv_bias=True,
+        qk_scale=None,
+        drop=0.0,
+        attn_drop=0.0,
+        drop_path=0.0,
+        norm_layer=nn.LayerNorm,
+        downsample=None,
+        use_checkpoint=False,
+    ):
         super().__init__()
         self.window_size = window_size
         self.shift_size = window_size // 2
@@ -440,7 +438,7 @@ class BasicLayer(nn.Module):
         else:
             self.downsample = None
 
-    def forward(self, x: torch.Tensor, H: int, W: int) -> tuple[torch.Tensor, int, int, torch.Tensor, int, int]:
+    def forward(self, x, H, W):
         """Forward function.
         Args:
             x: Input feature, tensor size (B, H*W, C).
@@ -472,14 +470,14 @@ class BasicLayer(nn.Module):
         )  # nW, window_size, window_size, 1
         mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
         attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-        attn_mask = attn_mask.masked_fill(attn_mask != 0, (-100.0)).masked_fill(
-            attn_mask == 0, 0.0
+        attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
+            attn_mask == 0, float(0.0)
         )
 
         for blk in self.blocks:
-            blk.H, blk.W = H, W  # pyright: ignore[reportArgumentType]
+            blk.H, blk.W = H, W
             if self.use_checkpoint:
-                x = checkpoint.checkpoint(blk, x, attn_mask)  # pyright: ignore[reportAssignmentType]
+                x = checkpoint.checkpoint(blk, x, attn_mask)
             else:
                 x = blk(x, attn_mask)
         if self.downsample is not None:
@@ -499,9 +497,9 @@ class PatchEmbed(nn.Module):
         norm_layer (nn.Module, optional): Normalization layer. Default: None
     """
 
-    def __init__(self, patch_size: int = 4, in_chans: int = 3, embed_dim: int = 96, norm_layer: Optional[Any] = None) -> None:
+    def __init__(self, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None):
         super().__init__()
-        patch_size = to_2tuple(patch_size)  # pyright: ignore[reportAssignmentType]
+        patch_size = to_2tuple(patch_size)
         self.patch_size = patch_size
 
         self.in_chans = in_chans
@@ -515,14 +513,14 @@ class PatchEmbed(nn.Module):
         else:
             self.norm = None
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         """Forward function."""
         # padding
         _, _, H, W = x.size()
-        if W % self.patch_size[1] != 0:  # pyright: ignore[reportIndexIssue]
-            x = F.pad(x, (0, self.patch_size[1] - W % self.patch_size[1]))  # pyright: ignore[reportIndexIssue]
-        if H % self.patch_size[0] != 0:  # pyright: ignore[reportIndexIssue]
-            x = F.pad(x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))  # pyright: ignore[reportIndexIssue]
+        if W % self.patch_size[1] != 0:
+            x = F.pad(x, (0, self.patch_size[1] - W % self.patch_size[1]))
+        if H % self.patch_size[0] != 0:
+            x = F.pad(x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))
 
         x = self.proj(x)  # B C Wh Ww
         if self.norm is not None:
@@ -564,29 +562,29 @@ class SwinTransformer(nn.Module):
 
     def __init__(
         self,
-        pretrain_img_size: int = 224,
-        patch_size: int = 4,
-        in_chans: int = 3,
-        embed_dim: int = 96,
-        depths: list[int] = [2, 2, 6, 2],
-        num_heads: list[int] = [3, 6, 12, 24],
-        window_size: int = 7,
-        mlp_ratio: float = 4.0,
-        qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
-        drop_rate: float = 0.0,
-        attn_drop_rate: float = 0.0,
-        drop_path_rate: float = 0.2,
-        norm_layer: Any = nn.LayerNorm,
-        ape: bool = False,
-        patch_norm: bool = True,
-        out_indices: Sequence[int] = (0, 1, 2, 3),
-        norm_indices: Optional[Sequence[int]] = None,
-        frozen_stages: int = -1,
-        use_checkpoint: bool = False,
-        projection: bool = False,
-        project_dim: int = 256,
-    ) -> None:
+        pretrain_img_size=224,
+        patch_size=4,
+        in_chans=3,
+        embed_dim=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        mlp_ratio=4.0,
+        qkv_bias=True,
+        qk_scale=None,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.2,
+        norm_layer=nn.LayerNorm,
+        ape=False,
+        patch_norm=True,
+        out_indices=(0, 1, 2, 3),
+        norm_indices=None,
+        frozen_stages=-1,
+        use_checkpoint=False,
+        projection=False,
+        project_dim=256,
+    ):
         super().__init__()
 
         self.pretrain_img_size = pretrain_img_size
@@ -608,11 +606,11 @@ class SwinTransformer(nn.Module):
 
         # absolute position embedding
         if self.ape:
-            pretrain_img_size = to_2tuple(pretrain_img_size)  # pyright: ignore[reportAssignmentType]
-            patch_size = to_2tuple(patch_size)  # pyright: ignore[reportAssignmentType]
+            pretrain_img_size = to_2tuple(pretrain_img_size)
+            patch_size = to_2tuple(patch_size)
             patches_resolution = [
-                pretrain_img_size[0] // patch_size[0],  # pyright: ignore[reportIndexIssue]
-                pretrain_img_size[1] // patch_size[1],  # pyright: ignore[reportIndexIssue]
+                pretrain_img_size[0] // patch_size[0],
+                pretrain_img_size[1] // patch_size[1],
             ]
 
             self.absolute_pos_embed = nn.Parameter(
@@ -640,7 +638,7 @@ class SwinTransformer(nn.Module):
                 qk_scale=qk_scale,
                 drop=drop_rate,
                 attn_drop=attn_drop_rate,
-                drop_path=dpr[sum(depths[:i_layer]) : sum(depths[: i_layer + 1])],  # pyright: ignore[reportArgumentType]
+                drop_path=dpr[sum(depths[:i_layer]) : sum(depths[: i_layer + 1])],
                 norm_layer=norm_layer,
                 downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                 use_checkpoint=use_checkpoint,
@@ -665,7 +663,7 @@ class SwinTransformer(nn.Module):
             self.projector = nn.Linear(self.num_features[-1], project_dim, bias=False)
         self._freeze_stages()
 
-    def _freeze_stages(self) -> None:
+    def _freeze_stages(self):
         if self.frozen_stages >= 0:
             self.patch_embed.eval()
             for param in self.patch_embed.parameters():
@@ -682,14 +680,14 @@ class SwinTransformer(nn.Module):
                 for param in m.parameters():
                     param.requires_grad = False
 
-    def init_weights(self, pretrained: Optional[str] = None) -> None:
+    def init_weights(self, pretrained=None):
         """Initialize the weights in backbone.
         Args:
             pretrained (str, optional): Path to pre-trained weights.
                 Defaults to None.
         """
 
-        def _init_weights(m: nn.Module) -> None:
+        def _init_weights(m):
             if isinstance(m, nn.Linear):
                 trunc_normal_(m.weight, std=0.02)
                 if isinstance(m, nn.Linear) and m.bias is not None:
@@ -698,7 +696,7 @@ class SwinTransformer(nn.Module):
                 nn.init.constant_(m.bias, 0)
                 nn.init.constant_(m.weight, 1.0)
 
-    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(self, x):
         """Forward function."""
         x = self.patch_embed(x)
 
@@ -727,7 +725,7 @@ class SwinTransformer(nn.Module):
                     .permute(0, 3, 1, 2)
                     .contiguous()
                 )
-                outs[f"res{i + 2}"] = out
+                outs["res{}".format(i + 2)] = out
         if self.projection:
             x_out = self.norm(x_out)
             x_out = x_out.view(-1, H, W, self.num_features[-1]).contiguous()
@@ -735,15 +733,15 @@ class SwinTransformer(nn.Module):
 
         return outs
 
-    def train(self, mode: bool = True) -> None:
+    def train(self, mode=True):
         """Convert the model into training mode while keep layers freezed."""
-        super().train(mode)
+        super(SwinTransformer, self).train(mode)
         self._freeze_stages()
 
 
 @BACKBONE_REGISTRY.register()
 class D2SwinTransformer(SwinTransformer, Backbone):
-    def __init__(self, cfg: Any, input_shape: ShapeSpec) -> None:
+    def __init__(self, cfg, input_shape):
 
         pretrain_img_size = cfg.MODEL.SWIN.PRETRAIN_IMG_SIZE
         patch_size = cfg.MODEL.SWIN.PATCH_SIZE
@@ -803,7 +801,7 @@ class D2SwinTransformer(SwinTransformer, Backbone):
             "fc": self.num_features[3],
         }
 
-    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(self, x):
         """
         Args:
             x: Tensor of shape (N,C,H,W). H, W must be a multiple of ``self.size_divisibility``.
@@ -820,7 +818,7 @@ class D2SwinTransformer(SwinTransformer, Backbone):
                 outputs[k] = y[k]
         return outputs
 
-    def output_shape(self) -> dict[str, ShapeSpec]:
+    def output_shape(self):
         return {
             name: ShapeSpec(
                 channels=self._out_feature_channels[name],
@@ -830,5 +828,5 @@ class D2SwinTransformer(SwinTransformer, Backbone):
         }
 
     @property
-    def size_divisibility(self) -> int:
+    def size_divisibility(self):
         return 32

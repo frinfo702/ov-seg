@@ -16,7 +16,6 @@ is replaced by mask prompt embeddings instead of black/zeros.
 
 import argparse
 import os
-from typing import Any
 
 import numpy as np
 import torch
@@ -28,7 +27,7 @@ CLIP_MEAN = torch.tensor([0.48145466, 0.4578275, 0.40821073])
 CLIP_STD = torch.tensor([0.26862954, 0.26130258, 0.27577711])
 
 
-def load_checkpoint(checkpoint_path: str) -> dict[str, Any]:
+def load_checkpoint(checkpoint_path):
     ckpt = torch.load(checkpoint_path, map_location="cpu")
     if "state_dict" in ckpt:
         return ckpt["state_dict"]
@@ -37,7 +36,7 @@ def load_checkpoint(checkpoint_path: str) -> dict[str, Any]:
     return ckpt
 
 
-def find_key(state_dict: dict[str, Any], substring: str) -> str:
+def find_key(state_dict, substring):
     candidates = [k for k in state_dict.keys() if substring in k]
     if not candidates:
         raise RuntimeError(f"No key containing '{substring}' found.")
@@ -46,7 +45,7 @@ def find_key(state_dict: dict[str, Any], substring: str) -> str:
     return candidates[0]
 
 
-def preprocess_image(pil_img: Image.Image, resolution: int) -> tuple[torch.Tensor, torch.Tensor]:
+def preprocess_image(pil_img, resolution):
     """Resize short side to resolution, center crop to (resolution, resolution), normalize."""
     w, h = pil_img.size
     scale = resolution / min(w, h)
@@ -65,7 +64,7 @@ def preprocess_image(pil_img: Image.Image, resolution: int) -> tuple[torch.Tenso
     return img, img_norm  # raw [0,1] and normalized
 
 
-def reconstruct_patches_from_embeddings(embeddings: torch.Tensor, conv1_weight: torch.Tensor) -> torch.Tensor:
+def reconstruct_patches_from_embeddings(embeddings, conv1_weight):
     """
     embeddings: (C, H, W) where H, W are grid sizes
     conv1_weight: (C, 3, ps, ps)
@@ -88,7 +87,7 @@ def reconstruct_patches_from_embeddings(embeddings: torch.Tensor, conv1_weight: 
     return img
 
 
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser(
         description="Approximate reconstruction of CLIP visual input under mask-prompt blending."
     )
@@ -210,7 +209,7 @@ def main() -> None:
     mean = CLIP_MEAN.view(3, 1, 1)
     std = CLIP_STD.view(3, 1, 1)
 
-    def save_tensor(t: torch.Tensor, name: str) -> None:
+    def save_tensor(t, name):
         t = t * std + mean
         t = torch.clamp(t, 0.0, 1.0)
         arr = (t.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
@@ -226,12 +225,12 @@ def main() -> None:
     img_raw_clamped = torch.clamp(img_raw, 0, 1)
     arr = (img_raw_clamped.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
     Image.fromarray(arr).save(os.path.join(args.output_dir, "00_raw_preprocessed.png"))
-    print("Saved: 00_raw_preprocessed.png")
+    print(f"Saved: 00_raw_preprocessed.png")
 
     # And the mask
     mask_arr = (mask_t.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
     Image.fromarray(mask_arr).save(os.path.join(args.output_dir, "00_mask.png"))
-    print("Saved: 00_mask.png")
+    print(f"Saved: 00_mask.png")
 
     print(f"\nAll outputs saved to: {args.output_dir}")
     print("Note: This is an approximation because positional embeddings, LayerNorm,")

@@ -2,15 +2,12 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import os
-from typing import Any, Optional
-
+import wandb
 from detectron2.utils import comm
 from detectron2.utils.events import EventWriter, get_event_storage
 
-import wandb
 
-
-def setup_wandb(cfg: Any, args: Any) -> Optional[Any]:
+def setup_wandb(cfg, args):
     if comm.is_main_process():
         if wandb.run is not None:
             return wandb.run
@@ -41,7 +38,7 @@ class WandbWriter(EventWriter):
     Write all scalars to a tensorboard file.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """
         Args:
             log_dir (str): the directory to save the output events
@@ -49,13 +46,13 @@ class WandbWriter(EventWriter):
         """
         self._last_write = -1
 
-    def write(self) -> None:
+    def write(self):
         if wandb.run is None:
             return
 
         storage = get_event_storage()
 
-        def _group_name(scalar_name: str) -> str:
+        def _group_name(scalar_name):
             if "/" in scalar_name:
                 return scalar_name
             return f"train/{scalar_name}"
@@ -84,7 +81,7 @@ class WandbWriter(EventWriter):
 
         if len(storage._histograms) >= 1:
 
-            def create_bar(tag: str, bucket_limits: Any, bucket_counts: Any, **kwargs: Any) -> Any:
+            def create_bar(tag, bucket_limits, bucket_counts, **kwargs):
                 data = [
                     [label, val] for (label, val) in zip(bucket_limits, bucket_counts)
                 ]
@@ -99,6 +96,6 @@ class WandbWriter(EventWriter):
             return
         wandb.log(stats, step=storage.iter)
 
-    def close(self) -> None:
+    def close(self):
         if wandb.run is not None:
             wandb.finish()

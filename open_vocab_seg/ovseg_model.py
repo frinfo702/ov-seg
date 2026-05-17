@@ -3,26 +3,28 @@
 # Modified by Feng Liang from
 # https://github.com/MendelXu/zsseg.baseline/blob/master/mask_former/zero_shot_mask_former_model.py
 
+import logging
+from typing import Tuple
 
-from typing import Any, Union
-
+import numpy as np
 import torch
+from torch import nn
+from torch.nn import functional as F
+
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
 from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.modeling.backbone import Backbone
 from detectron2.modeling.postprocessing import sem_seg_postprocess
 from detectron2.structures import ImageList
-from torch import nn
-from torch.nn import functional as F
-
+from detectron2.utils.logger import log_first_n
 from .modeling.clip_adapter import (
     ClipAdapter,
     MaskFormerClipAdapter,
     build_text_prompt,
 )
-from .modeling.mask_former_model import MaskFormer
-
+from .mask_former_model import MaskFormer
+from .utils.misc import get_gt_binary_masks
 
 @META_ARCH_REGISTRY.register()
 class OVSeg(MaskFormer):
@@ -42,14 +44,14 @@ class OVSeg(MaskFormer):
         panoptic_on: bool,
         object_mask_threshold: float,
         overlap_threshold: float,
-        metadata: Any,
+        metadata,
         size_divisibility: int,
         sem_seg_postprocess_before_inference: bool,
         clip_ensemble: bool,
         clip_ensemble_weight: float,
-        pixel_mean: tuple[float],
-        pixel_std: tuple[float],
-    ) -> None:
+        pixel_mean: Tuple[float],
+        pixel_std: Tuple[float],
+    ):
         """
         Args:
             backbone: a backbone module, must follow detectron2's backbone interface
@@ -92,7 +94,7 @@ class OVSeg(MaskFormer):
         self.clip_ensemble_weight: float = clip_ensemble_weight
 
     @classmethod
-    def from_config(cls, cfg: Any) -> dict[str, Any]:
+    def from_config(cls, cfg):
         init_kwargs = MaskFormer.from_config(cfg)
         text_templates = build_text_prompt(cfg.MODEL.CLIP_ADAPTER)
 
@@ -115,7 +117,7 @@ class OVSeg(MaskFormer):
 
         return init_kwargs
 
-    def forward(self, batched_inputs: list[dict[str, Any]]) -> Union[dict[str, torch.Tensor], list[dict[str, Any]]]:
+    def forward(self, batched_inputs):
         """
         Args:
             batched_inputs: a list, batched outputs of :class:`DatasetMapper`.
@@ -226,7 +228,7 @@ class OVSeg(MaskFormer):
             return processed_results
 
 
-    def semantic_inference(self, mask_cls: torch.Tensor, mask_pred: torch.Tensor, image: torch.Tensor, class_names: list[str]) -> tuple[torch.Tensor, Any]:
+    def semantic_inference(self, mask_cls, mask_pred, image, class_names):
         mask_cls = F.softmax(mask_cls, dim=-1)[..., :-1]
         mask_pred = mask_pred.sigmoid()
 
@@ -253,7 +255,7 @@ class OVSeg(MaskFormer):
         semseg = torch.einsum("qc,qhw->chw", mask_cls, mask_pred)
         return semseg, regions
 
-    def get_class_name_list(self, dataset_name: str) -> list[str]:
+    def get_class_name_list(self, dataset_name):
         class_names = [
             c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes
         ]
@@ -278,14 +280,14 @@ class OVSegDEMO(MaskFormer):
         panoptic_on: bool,
         object_mask_threshold: float,
         overlap_threshold: float,
-        metadata: Any,
+        metadata,
         size_divisibility: int,
         sem_seg_postprocess_before_inference: bool,
         clip_ensemble: bool,
         clip_ensemble_weight: float,
-        pixel_mean: tuple[float],
-        pixel_std: tuple[float],
-    ) -> None:
+        pixel_mean: Tuple[float],
+        pixel_std: Tuple[float],
+    ):
         """
         Args:
             backbone: a backbone module, must follow detectron2's backbone interface
@@ -328,7 +330,7 @@ class OVSegDEMO(MaskFormer):
         self.clip_ensemble_weight: float = clip_ensemble_weight
 
     @classmethod
-    def from_config(cls, cfg: Any) -> dict[str, Any]:
+    def from_config(cls, cfg):
         init_kwargs = MaskFormer.from_config(cfg)
         text_templates = build_text_prompt(cfg.MODEL.CLIP_ADAPTER)
 
@@ -351,7 +353,7 @@ class OVSegDEMO(MaskFormer):
 
         return init_kwargs
 
-    def forward(self, batched_inputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def forward(self, batched_inputs):
         """
         Args:
             batched_inputs: a list, batched outputs of :class:`DatasetMapper`.
@@ -423,7 +425,8 @@ class OVSegDEMO(MaskFormer):
 
 
 
-    def demo_inference(self, mask_cls: torch.Tensor, mask_pred: torch.Tensor, image: torch.Tensor, class_names: list[str]) -> tuple[torch.Tensor, Any]:
+
+    def demo_inference(self, mask_cls, mask_pred, image, class_names):
         mask_cls = F.softmax(mask_cls, dim=-1)[..., :-1]
         mask_pred = mask_pred.sigmoid()
 
@@ -446,7 +449,7 @@ class OVSegDEMO(MaskFormer):
                 # only clip model predictions are used
                 mask_cls = clip_cls
                 mask_pred = mask_pred[valid_flag]
-        bin_mask = mask_pred > self.clip_adapter.mask_thr  # pyright: ignore[reportOperatorIssue]
+        bin_mask = mask_pred > self.clip_adapter.mask_thr
         select_cls = torch.zeros(sum(valid_flag), mask_cls.shape[-1], device=self.device)
         select_mask = torch.argmax(mask_cls, dim=0)
         if len(class_names) == 2 and class_names[-1] == 'others':

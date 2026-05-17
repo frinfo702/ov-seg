@@ -5,7 +5,6 @@ import pandas as pd
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_sem_seg
 from detectron2.utils.file_io import PathManager
-from typing import Any, Dict, List
 
 
 COCO_CATEGORIES = [
@@ -400,7 +399,7 @@ COCO_NOVEL_CATEGORIES = [
 ]
 
 
-def load_cc_image(csv_file: str, img_key: str = 'filepath', caption_key: str = 'title', sep: str = "\t") -> List[Dict[str, str]]:
+def load_cc_image(csv_file, img_key='filepath', caption_key='title', sep="\t"):
     print(f'Loading csv data from {csv_file}.')
     df = pd.read_csv(csv_file, sep=sep)
 
@@ -419,7 +418,7 @@ def load_cc_image(csv_file: str, img_key: str = 'filepath', caption_key: str = '
     return dataset_dicts
 
 
-def _get_coco_stuff_meta(cat_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _get_coco_stuff_meta(cat_list):
     # Id 0 is reserved for ignore_label, we change ignore_label for 0
     # to 255 in our pre-processing.
     stuff_ids = [k["id"] for k in cat_list]
@@ -436,7 +435,7 @@ def _get_coco_stuff_meta(cat_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     return ret
 
 
-def register_cc_3m(csv_file: str) -> None:
+def register_cc_3m(csv_file):
 
     meta = _get_coco_stuff_meta(TEST_CATEGORIES)
     name = "cc_3m_train"

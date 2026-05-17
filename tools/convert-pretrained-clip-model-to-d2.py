@@ -3,7 +3,6 @@
 
 import pickle as pkl
 import sys
-from typing import Any
 
 import torch
 
@@ -21,7 +20,7 @@ INPUT:
 """
 
 
-def transform(path: str) -> dict[str, Any]:
+def transform(path):
     model = torch.load(path, map_location="cpu")
     print(f"loading {path}......")
     state_dict = model["model"]

@@ -2,19 +2,17 @@
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-from typing import Any
-
+from torch import nn
 from detectron2.config import configurable
-
-from .transformer_predictor import MLP, TransformerPredictor
+from .transformer_predictor import TransformerPredictor, MLP
 
 
 class OpenVocabTransformerPredictor(TransformerPredictor):
     @configurable
     def __init__(
         self,
-        in_channels: int,
-        mask_classification: bool = True,
+        in_channels,
+        mask_classification=True,
         *,
         embedding_dim: int,
         embed_hidden_dim: int,
@@ -30,7 +28,7 @@ class OpenVocabTransformerPredictor(TransformerPredictor):
         deep_supervision: bool,
         mask_dim: int,
         enforce_input_project: bool,
-    ) -> None:
+    ):
         super().__init__(
             in_channels,
             False,
@@ -54,14 +52,14 @@ class OpenVocabTransformerPredictor(TransformerPredictor):
                 hidden_dim, embed_hidden_dim, embedding_dim, embed_layers
             )
 
-    def freeze_pretrained(self) -> None:
+    def freeze_pretrained(self):
         for name, module in self.named_children():
             if name not in ["class_embed"]:
                 for param in module.parameters():
                     param.requires_grad = False
 
     @classmethod
-    def from_config(cls, cfg: Any, in_channels: int, mask_classification: bool) -> dict[str, Any]:
+    def from_config(cls, cfg, in_channels, mask_classification):
         ret = {}
         ret["in_channels"] = in_channels
         ret["mask_classification"] = mask_classification

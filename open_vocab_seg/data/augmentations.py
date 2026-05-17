@@ -3,8 +3,6 @@
 
 import math
 import numbers
-from typing import Any, Optional, Union
-
 import numpy as np
 from detectron2.data.transforms.augmentation import Augmentation
 from detectron2.data.transforms.transform import (
@@ -12,11 +10,11 @@ from detectron2.data.transforms.transform import (
     ResizeTransform,
     TransformList,
 )
-from fvcore.transforms.transform import PadTransform
 from PIL import Image
+from fvcore.transforms.transform import PadTransform
 
 
-def mask2box(mask: np.ndarray) -> Optional[tuple[int, int, int, int]]:
+def mask2box(mask: np.ndarray):
     # use naive way
     row = np.nonzero(mask.sum(axis=0))[0]
     if len(row) == 0:
@@ -29,12 +27,12 @@ def mask2box(mask: np.ndarray) -> Optional[tuple[int, int, int, int]]:
     return x1, y1, x2 + 1 - x1, y2 + 1 - y1
 
 
-def expand_box(x: int, y: int, w: float, h: float, expand_ratio: float = 1.0, max_h: Optional[int] = None, max_w: Optional[int] = None) -> list[int]:
-    cx: float = x + 0.5 * w
-    cy: float = y + 0.5 * h
+def expand_box(x, y, w, h, expand_ratio=1.0, max_h=None, max_w=None):
+    cx = x + 0.5 * w
+    cy = y + 0.5 * h
     w = w * expand_ratio
     h = h * expand_ratio
-    box: list[float] = [cx - 0.5 * w, cy - 0.5 * h, cx + 0.5 * w, cy + 0.5 * h]
+    box = [cx - 0.5 * w, cy - 0.5 * h, cx + 0.5 * w, cy + 0.5 * h]
     if max_h is not None:
         box[1] = max(0, box[1])
         box[3] = min(max_h - 1, box[3])
@@ -48,56 +46,47 @@ def expand_box(x: int, y: int, w: float, h: float, expand_ratio: float = 1.0, ma
 
 
 class CropImageWithMask(Augmentation):
-    expand_ratio: tuple[float, float]
-
-    def __init__(self, expand_ratio: Union[float, tuple[float, float]] = 1.0, mode: str = "choice") -> None:
-        if isinstance(expand_ratio, tuple):
-            self.expand_ratio = expand_ratio
-        else:
-            self.expand_ratio = (float(expand_ratio), float(expand_ratio))
+    def __init__(self, expand_ratio=1.0, mode="choice"):
+        if isinstance(expand_ratio, numbers.Number):
+            expand_ratio = (expand_ratio, expand_ratio)
         self.mode = mode
+        self.expand_ratio = expand_ratio
         if self.mode == "range":
-            assert len(self.expand_ratio) == 2 and self.expand_ratio[0] < self.expand_ratio[1]
+            assert len(expand_ratio) == 2 and expand_ratio[0] < expand_ratio[1]
 
-    def get_transform(self, image: np.ndarray, sem_seg: np.ndarray, category_id: int) -> CropTransform:
+    def get_transform(self, image, sem_seg, category_id):
         input_size = image.shape[:2]
         bin_mask = sem_seg == category_id
-        box = mask2box(bin_mask)
-        if box is None:
-            return CropTransform(0, 0, input_size[1], input_size[0], input_size[1], input_size[0])
-        x, y, w, h = box
+        x, y, w, h = mask2box(bin_mask)
         if self.mode == "choice":
-            expand_ratio_val: float = np.random.choice(self.expand_ratio)
+            expand_ratio = np.random.choice(self.expand_ratio)
         else:
-            expand_ratio_val = np.random.uniform(self.expand_ratio[0], self.expand_ratio[1])
-        x, y, w, h = expand_box(x, y, w, h, expand_ratio_val, *input_size)
+            expand_ratio = np.random.uniform(self.expand_ratio[0], self.expand_ratio[1])
+        x, y, w, h = expand_box(x, y, w, h, expand_ratio, *input_size)
         w = max(w, 1)
         h = max(h, 1)
         return CropTransform(x, y, w, h, input_size[1], input_size[0])
 
 
 class CropImageWithBox(Augmentation):
-    expand_ratio: tuple[float, float]
-
-    def __init__(self, expand_ratio: Union[float, tuple[float, float]] = 1.0, mode: str = "choice") -> None:
-        if isinstance(expand_ratio, tuple):
-            self.expand_ratio = expand_ratio
-        else:
-            self.expand_ratio = (float(expand_ratio), float(expand_ratio))
+    def __init__(self, expand_ratio=1.0, mode="choice"):
+        if isinstance(expand_ratio, numbers.Number):
+            expand_ratio = (expand_ratio, expand_ratio)
         self.mode = mode
+        self.expand_ratio = expand_ratio
         if self.mode == "range":
-            assert len(self.expand_ratio) == 2 and self.expand_ratio[0] < self.expand_ratio[1]
+            assert len(expand_ratio) == 2 and expand_ratio[0] < expand_ratio[1]
 
-    def get_transform(self, image: np.ndarray, boxes: np.ndarray) -> CropTransform:
+    def get_transform(self, image, boxes):
         input_size = image.shape[:2]
         x, y, x2, y2 = boxes[0]
         w = x2 - x + 1
         h = y2 - y + 1
         if self.mode == "choice":
-            expand_ratio_val: float = np.random.choice(self.expand_ratio)
+            expand_ratio = np.random.choice(self.expand_ratio)
         else:
-            expand_ratio_val = np.random.uniform(self.expand_ratio[0], self.expand_ratio[1])
-        x, y, w, h = expand_box(x, y, w, h, expand_ratio_val, *input_size)
+            expand_ratio = np.random.uniform(self.expand_ratio[0], self.expand_ratio[1])
+        x, y, w, h = expand_box(x, y, w, h, expand_ratio, *input_size)
         w = max(w, 1)
         h = max(h, 1)
         return CropTransform(x, y, w, h, input_size[1], input_size[0])
@@ -106,11 +95,11 @@ class CropImageWithBox(Augmentation):
 class RandomResizedCrop(Augmentation):
     def __init__(
         self,
-        size: Union[int, tuple[int, int]],
-        scale: tuple[float, float] = (0.08, 1.0),
-        ratio: tuple[float, float] = (3.0 / 4.0, 4.0 / 3.0),
-        interpolation: int = Image.Resampling.BILINEAR,
-    ) -> None:
+        size,
+        scale=(0.08, 1.0),
+        ratio=(3.0 / 4.0, 4.0 / 3.0),
+        interpolation=Image.BILINEAR,
+    ):
         if isinstance(size, int):
             size = (size, size)
         else:
@@ -122,16 +111,12 @@ class RandomResizedCrop(Augmentation):
         self.ratio = ratio
         self.interpolation = interpolation
 
-    def get_transform(self, image: np.ndarray) -> TransformList:
+    def get_transform(self, image):
         height, width = image.shape[:2]
         area = height * width
 
         log_ratio = np.log(np.array(self.ratio))
         is_success = False
-        i = 0
-        j = 0
-        w = width
-        h = height
         for _ in range(10):
             target_area = area * np.random.uniform(self.scale[0], self.scale[1])
             aspect_ratio = np.exp(np.random.uniform(log_ratio[0], log_ratio[1]))
@@ -171,18 +156,15 @@ class RandomResizedCrop(Augmentation):
 
 
 class CenterCrop(Augmentation):
-    size: tuple[int, int]
-
-    def __init__(self, size: Union[int, tuple[int, int], list[int]], seg_ignore_label: int) -> None:
-        if isinstance(size, tuple):
-            self.size = size
-        elif isinstance(size, list):
-            self.size = tuple(size)
-        else:
-            self.size = (int(size), int(size))
+    def __init__(self, size, seg_ignore_label):
+        if isinstance(size, numbers.Number):
+            size = (int(size), int(size))
+        elif isinstance(size, (tuple, list)) and len(size) == 1:
+            size = (size[0], size[0])
+        self.size = size
         self.seg_ignore_label = seg_ignore_label
 
-    def get_transform(self, image: np.ndarray) -> TransformList:
+    def get_transform(self, image):
 
         image_height, image_width = image.shape[:2]
         crop_height, crop_width = self.size

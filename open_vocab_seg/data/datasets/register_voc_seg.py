@@ -3,7 +3,6 @@ import os
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_sem_seg
-from typing import Any, Dict, Tuple
 
 PASCALVOC20_NAMES = (
     "aeroplane",
@@ -28,14 +27,14 @@ PASCALVOC20_NAMES = (
     "tvmonitor",
 )
 
-def _get_voc_meta(cat_list: Tuple[str, ...]) -> Dict[str, Any]:
+def _get_voc_meta(cat_list):
     ret = {
         "stuff_classes": cat_list,
     }
     return ret
 
 
-def register_pascalvoc(root: str) -> None:
+def register_pascalvoc(root):
     root = os.path.join(root, "VOCdevkit/VOC2012")
     meta = _get_voc_meta(PASCALVOC20_NAMES)
 

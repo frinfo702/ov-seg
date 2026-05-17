@@ -5,7 +5,6 @@
 import os
 import os.path as osp
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import tqdm
@@ -38,8 +37,8 @@ clsID_to_trID = {
 
 
 def convert_to_trainID(
-    maskpath: Union[str, Path], out_mask_dir: Union[str, Path], is_train: bool, clsID_to_trID: dict[int, int] = clsID_to_trID, suffix: str = ""
-) -> None:
+    maskpath, out_mask_dir, is_train, clsID_to_trID=clsID_to_trID, suffix=""
+):
     mask = np.array(Image.open(maskpath))
     mask_copy = np.ones_like(mask, dtype=np.uint8) * 255
     for clsID, trID in clsID_to_trID.items():
@@ -66,7 +65,7 @@ if __name__ == "__main__":
         val_list = [
             osp.join(voc_path, "SegmentationClassAug", f + ".png")
             for f in np.loadtxt(
-                osp.join(voc_path, "ImageSets/Segmentation/val.txt"), dtype=str
+                osp.join(voc_path, "ImageSets/Segmentation/val.txt"), dtype=np.str
             ).tolist()
         ]
         for file in tqdm.tqdm(val_list):

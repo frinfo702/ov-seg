@@ -2,20 +2,20 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import multiprocessing as mp
-from typing import Any
 
-import gradio as gr
 import numpy as np
-from detectron2.config import get_cfg
-from detectron2.data.detection_utils import read_image
-from detectron2.projects.deeplab import add_deeplab_config
 from PIL import Image
 
+from detectron2.config import get_cfg
+
+from detectron2.projects.deeplab import add_deeplab_config
+from detectron2.data.detection_utils import read_image
 from open_vocab_seg import add_ovseg_config
 from open_vocab_seg.utils import VisualizationDemo
 
+import gradio as gr
 
-def setup_cfg(config_file: str) -> Any:
+def setup_cfg(config_file):
     # load config from file and command-line arguments
     cfg = get_cfg()
     add_deeplab_config(cfg)
@@ -25,16 +25,16 @@ def setup_cfg(config_file: str) -> Any:
     return cfg
 
 
-def inference(class_names: str, input_img: str) -> Image.Image:
+def inference(class_names, input_img):
     mp.set_start_method("spawn", force=True)
     config_file = './configs/ovseg_swinB_vitL_demo.yaml'
     cfg = setup_cfg(config_file)
 
     demo = VisualizationDemo(cfg)
 
-    class_names_list = class_names.split(',')
+    class_names = class_names.split(',')
     img = read_image(input_img, format="BGR")
-    _, visualized_output = demo.run_on_image(img, class_names_list)
+    _, visualized_output = demo.run_on_image(img, class_names)
 
     return Image.fromarray(np.uint8(visualized_output.get_image())).convert('RGB')
 

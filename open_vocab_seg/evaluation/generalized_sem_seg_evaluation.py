@@ -1,20 +1,19 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-import io
 import itertools
 import json
+import numpy as np
 import os
 from collections import OrderedDict
-from typing import Any, Callable, Optional
-
-import numpy as np
+import PIL.Image as Image
 import torch
-from detectron2.data import MetadataCatalog
-from detectron2.evaluation import SemSegEvaluator
+
+from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.utils.comm import all_gather, is_main_process, synchronize
 from detectron2.utils.file_io import PathManager
-from PIL import Image
+
+from detectron2.evaluation import SemSegEvaluator
 
 
 class GeneralizedSemSegEvaluator(SemSegEvaluator):
@@ -24,14 +23,14 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
 
     def __init__(
         self,
-        dataset_name: str,
-        distributed: bool = True,
-        output_dir: Optional[str] = None,
+        dataset_name,
+        distributed=True,
+        output_dir=None,
         *,
-        num_classes: Optional[int] = None,
-        ignore_label: Optional[int] = None,
-        post_process_func: Optional[Callable] = None,
-    ) -> None:
+        num_classes=None,
+        ignore_label=None,
+        post_process_func=None,
+    ):
         super().__init__(
             dataset_name,
             distributed=distributed,
@@ -50,7 +49,7 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
             else lambda x, **kwargs: x
         )
 
-    def process(self, inputs: list[dict[str, Any]], outputs: list[dict[str, Any]]) -> None:
+    def process(self, inputs, outputs):
         """
         Args:
             inputs: the inputs to a model.
@@ -69,7 +68,7 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
             with PathManager.open(
                 self.input_file_to_gt_file[input["file_name"]], "rb"
             ) as f:
-                gt = np.array(Image.open(io.BytesIO(f.read())), dtype=np.int64)  # pyright: ignore[reportArgumentType]
+                gt = np.array(Image.open(f), dtype=np.int64)
 
             gt[gt == self._ignore_label] = self._num_classes
 
@@ -80,7 +79,7 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
 
             self._predictions.extend(self.encode_json_sem_seg(pred, input["file_name"]))
 
-    def evaluate(self) -> OrderedDict:
+    def evaluate(self):
         """
         Evaluates standard semantic segmentation metrics (http://cocodataset.org/#stuff-eval):
 
@@ -93,19 +92,19 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
             synchronize()
             conf_matrix_list = all_gather(self._conf_matrix)
             self._predictions = all_gather(self._predictions)
-            self._predictions = list(itertools.chain(*self._predictions))  # pyright: ignore[reportArgumentType]
+            self._predictions = list(itertools.chain(*self._predictions))
             if not is_main_process():
-                return  # pyright: ignore[reportReturnType]
+                return
 
             self._conf_matrix = np.zeros_like(self._conf_matrix)
             for conf_matrix in conf_matrix_list:
-                self._conf_matrix += conf_matrix  # pyright: ignore[reportOperatorIssue]
+                self._conf_matrix += conf_matrix
 
         if self._output_dir:
             PathManager.mkdirs(self._output_dir)
             file_path = os.path.join(self._output_dir, "sem_seg_predictions.json")
-            with PathManager.open(file_path, "wb") as f:
-                f.write(json.dumps(self._predictions).encode())  # pyright: ignore[reportArgumentType]
+            with PathManager.open(file_path, "w") as f:
+                f.write(json.dumps(self._predictions))
 
         acc = np.full(self._num_classes, np.nan, dtype=np.float64)
         iou = np.full(self._num_classes, np.nan, dtype=np.float64)
@@ -127,11 +126,11 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
         res["mIoU"] = 100 * miou
         res["fwIoU"] = 100 * fiou
         for i, name in enumerate(self._class_names):
-            res[f"IoU-{name}"] = 100 * iou[i]
+            res["IoU-{}".format(name)] = 100 * iou[i]
         res["mACC"] = 100 * macc
         res["pACC"] = 100 * pacc
         for i, name in enumerate(self._class_names):
-            res[f"ACC-{name}"] = 100 * acc[i]
+            res["ACC-{}".format(name)] = 100 * acc[i]
         if self._evaluation_set is not None:
             for set_name, set_inds in self._evaluation_set.items():
                 iou_list = []
@@ -140,21 +139,21 @@ class GeneralizedSemSegEvaluator(SemSegEvaluator):
                 mask[set_inds] = 1
                 miou = np.sum(iou[mask][acc_valid[mask]]) / np.sum(iou_valid[mask])
                 pacc = np.sum(tp[mask]) / np.sum(pos_gt[mask])
-                res[f"mIoU-{set_name}"] = 100 * miou
-                res[f"pAcc-{set_name}"] = 100 * pacc
+                res["mIoU-{}".format(set_name)] = 100 * miou
+                res["pAcc-{}".format(set_name)] = 100 * pacc
                 iou_list.append(miou)
                 miou = np.sum(iou[~mask][acc_valid[~mask]]) / np.sum(iou_valid[~mask])
                 pacc = np.sum(tp[~mask]) / np.sum(pos_gt[~mask])
-                res[f"mIoU-un{set_name}"] = 100 * miou
-                res[f"pAcc-un{set_name}"] = 100 * pacc
+                res["mIoU-un{}".format(set_name)] = 100 * miou
+                res["pAcc-un{}".format(set_name)] = 100 * pacc
                 iou_list.append(miou)
-                res[f"hIoU-{set_name}"] = (
+                res["hIoU-{}".format(set_name)] = (
                     100 * len(iou_list) / sum([1 / iou for iou in iou_list])
                 )
         if self._output_dir:
             file_path = os.path.join(self._output_dir, "sem_seg_evaluation.pth")
             with PathManager.open(file_path, "wb") as f:
-                torch.save(res, f)  # pyright: ignore[reportArgumentType]
+                torch.save(res, f)
         results = OrderedDict({"sem_seg": res})
         self._logger.info(results)
         return results

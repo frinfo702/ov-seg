@@ -19,8 +19,6 @@ timm
 torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.7.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
 torch-ema
 torchmetrics==0.11.4
-transformers>=4.38.0
-accelerate>=0.25.0
 torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.22.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
 wandb
 webdataset>=0.2.5

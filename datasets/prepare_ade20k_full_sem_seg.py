@@ -4,7 +4,6 @@
 import os
 import pickle as pkl
 from pathlib import Path
-from typing import Any
 
 import cv2
 import numpy as np
@@ -962,7 +961,7 @@ ADE20K_SEM_SEG_FULL_CATEGORIES = [
 ]
 
 
-def loadAde20K(file: str) -> dict[str, Any]:
+def loadAde20K(file):
     fileseg = file.replace(".jpg", "_seg.png")
     with Image.open(fileseg) as io:
         seg = np.array(io)
@@ -1019,7 +1018,6 @@ if __name__ == "__main__":
         else:
             resize = False
 
-        w_new, h_new = w, h
         if resize:
             img = cv2.resize(img, (w_new, h_new), interpolation=cv2.INTER_LINEAR)
             lab = cv2.resize(lab, (w_new, h_new), interpolation=cv2.INTER_NEAREST)

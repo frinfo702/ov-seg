@@ -1,14 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-
-from typing import Any, Optional
-
-import clip
+from typing import Tuple
 import numpy as np
 import torch
+import clip
 from detectron2.utils.comm import get_local_rank, synchronize
-from torch import nn
 
 
 def expand_box(
@@ -17,9 +14,9 @@ def expand_box(
     x2: float,
     y2: float,
     expand_ratio: float = 1.0,
-    max_h: Optional[int] = None,
-    max_w: Optional[int] = None,
-) -> list[int]:
+    max_h: int = None,
+    max_w: int = None,
+):
     cx = 0.5 * (x1 + x2)
     cy = 0.5 * (y1 + y2)
     w = x2 - x1
@@ -36,14 +33,14 @@ def expand_box(
     return [int(b) for b in box]
 
 
-def mask2box(mask: torch.Tensor) -> Optional[tuple[Any, Any, Any, Any]]:
+def mask2box(mask: torch.Tensor):
     # use naive way
     row = torch.nonzero(mask.sum(dim=0))[:, 0]
     if len(row) == 0:
         return None
     x1 = row.min()
     x2 = row.max()
-    col = np.nonzero(mask.sum(dim=1))[:, 0]  # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
+    col = np.nonzero(mask.sum(dim=1))[:, 0]
     y1 = col.min()
     y2 = col.max()
     return x1, y1, x2 + 1, y2 + 1
@@ -53,10 +50,10 @@ def crop_with_mask(
     image: torch.Tensor,
     mask: torch.Tensor,
     bbox: torch.Tensor,
-    fill: tuple[float, float, float] = (0, 0, 0),
+    fill: Tuple[float, float, float] = (0, 0, 0),
     expand_ratio: float = 1.0,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    l, t, r, b = expand_box(*bbox, expand_ratio)  # pyright: ignore[reportCallIssue]
+):
+    l, t, r, b = expand_box(*bbox, expand_ratio)
     _, h, w = image.shape
     l = max(l, 0)
     t = max(t, 0)
@@ -69,7 +66,7 @@ def crop_with_mask(
     return image[:, t:b, l:r] * mask[None, t:b, l:r] + (1 - mask[None, t:b, l:r]) * new_image, mask[None, t:b, l:r]
 
 
-def build_clip_model(model: str, mask_prompt_depth: int = 0, frozen: bool = True) -> nn.Module:
+def build_clip_model(model: str, mask_prompt_depth: int = 0, frozen: bool = True):
     rank = get_local_rank()
     if rank == 0:
         # download on rank 0 only
@@ -81,4 +78,4 @@ def build_clip_model(model: str, mask_prompt_depth: int = 0, frozen: bool = True
     if frozen:
         for param in model.parameters():
             param.requires_grad = False
-    return model  # pyright: ignore[reportReturnType]
+    return model

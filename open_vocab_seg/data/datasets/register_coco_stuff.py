@@ -3,7 +3,6 @@ import os
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_sem_seg
-from typing import Any, Dict, List
 
 
 COCO_CATEGORIES = [
@@ -180,7 +179,7 @@ COCO_CATEGORIES = [
     {"id": 182, "name": "wood", "supercategory": "solid"},
 ]
 
-def _get_coco_stuff_meta(cat_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _get_coco_stuff_meta(cat_list):
     # Id 0 is reserved for ignore_label, we change ignore_label for 0
     # to 255 in our pre-processing.
     stuff_ids = [k["id"] for k in cat_list]
@@ -197,7 +196,7 @@ def _get_coco_stuff_meta(cat_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     return ret
 
 
-def register_all_coco_stuff_10k(root: str) -> None:
+def register_all_coco_stuff_10k(root):
     root = os.path.join(root, "coco", "coco_stuff_10k")
     meta = _get_coco_stuff_meta(COCO_CATEGORIES)
     for name, image_dirname, sem_seg_dirname in [
@@ -221,7 +220,7 @@ def register_all_coco_stuff_10k(root: str) -> None:
         )
 
 
-def register_all_coco_stuff(root: str) -> None:
+def register_all_coco_stuff(root):
     root = os.path.join(root, "coco")
     meta = _get_coco_stuff_meta(COCO_CATEGORIES)
 
