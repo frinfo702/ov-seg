@@ -7,18 +7,15 @@ OVSeg Training Script.
 
 This script is a simplified version of the training script in detectron2/tools.
 """
-import sitecustomize  # noqa: F401
-
 import copy
 import itertools
 import logging
 import os
 from collections import OrderedDict
-from typing import Any, Dict, List, Set
+from typing import Any, Optional
 
 import detectron2.utils.comm as comm
 import torch
-import wandb
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -29,24 +26,21 @@ from detectron2.engine import (
     launch,
 )
 from detectron2.evaluation import (
-    DatasetEvaluator,
-    CityscapesSemSegEvaluator,
-    COCOEvaluator,
     DatasetEvaluators,
     verify_results,
 )
 from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
 from detectron2.solver.build import maybe_add_gradient_clipping
-from detectron2.utils.logger import setup_logger
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter
+from detectron2.utils.logger import setup_logger
+
+import sitecustomize  # noqa: F401
+import wandb
 
 # OVSeg
 from open_vocab_seg import SemanticSegmentorWithTTA, add_ovseg_config
 from open_vocab_seg.data import (
     MaskFormerSemanticDatasetMapper,
-)
-
-from open_vocab_seg.data import (
     build_detection_test_loader,
     build_detection_train_loader,
 )
@@ -57,7 +51,7 @@ from open_vocab_seg.utils.events import WandbWriter, setup_wandb
 from open_vocab_seg.utils.post_process_utils import dense_crf_post_process
 
 
-def _flatten_eval_results(results, prefix="eval"):
+def _flatten_eval_results(results: dict[str, Any], prefix: str = "eval") -> dict[str, Any]:
     flat_results = {}
     for key, value in results.items():
         current_key = f"{prefix}/{key}" if prefix else str(key)
@@ -74,7 +68,7 @@ class Trainer(DefaultTrainer):
     """
 
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+    def build_evaluator(cls, cfg: Any, dataset_name: str, output_folder: Optional[str] = None) -> Any:
         """
         Create evaluator(s) for a given dataset.
         This uses the special metadata "evaluator_type" associated with each
@@ -101,35 +95,33 @@ class Trainer(DefaultTrainer):
 
         if len(evaluator_list) == 0:
             raise NotImplementedError(
-                "no Evaluator for the dataset {} with the type {}".format(
-                    dataset_name, evaluator_type
-                )
+                f"no Evaluator for the dataset {dataset_name} with the type {evaluator_type}"
             )
         elif len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
 
     @classmethod
-    def build_train_loader(cls, cfg):
+    def build_train_loader(cls, cfg: Any) -> Any:
         dataset = None
         # Semantic segmentation dataset mapper
         if cfg.INPUT.DATASET_MAPPER_NAME == "mask_former_semantic":
-            mapper = MaskFormerSemanticDatasetMapper(cfg, True)
+            mapper = MaskFormerSemanticDatasetMapper(cfg, True)  # pyright: ignore[reportCallIssue]
         else:
             raise NotImplementedError
-        return build_detection_train_loader(cfg, mapper=mapper, dataset=dataset)
+        return build_detection_train_loader(cfg, mapper=mapper, dataset=dataset)  # pyright: ignore[reportCallIssue, reportOptionalCall, reportArgumentType]
 
     @classmethod
-    def build_test_loader(cls, cfg, dataset_name):
+    def build_test_loader(cls, cfg: Any, dataset_name: str) -> Any:
         """
         Returns:
             iterable
         It now calls :func:`detectron2.data.build_detection_test_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        return build_detection_test_loader(cfg, dataset_name, mapper=None)
+        return build_detection_test_loader(cfg, dataset_name, mapper=None)  # pyright: ignore[reportCallIssue, reportOptionalCall]
 
-    def build_writers(self):
+    def build_writers(self) -> list[Any]:
         """
         Build a list of writers to be used. By default it contains
         writers that write metrics to the screen,
@@ -158,7 +150,7 @@ class Trainer(DefaultTrainer):
         ]
 
     @classmethod
-    def build_lr_scheduler(cls, cfg, optimizer):
+    def build_lr_scheduler(cls, cfg: Any, optimizer: Any) -> Any:
         """
         It now calls :func:`detectron2.solver.build_lr_scheduler`.
         Overwrite it if you'd like a different scheduler.
@@ -166,7 +158,7 @@ class Trainer(DefaultTrainer):
         return build_lr_scheduler(cfg, optimizer)
 
     @classmethod
-    def build_optimizer(cls, cfg, model):
+    def build_optimizer(cls, cfg: Any, model: Any) -> Any:
         weight_decay_norm = cfg.SOLVER.WEIGHT_DECAY_NORM
         weight_decay_embed = cfg.SOLVER.WEIGHT_DECAY_EMBED
 
@@ -188,8 +180,8 @@ class Trainer(DefaultTrainer):
             torch.nn.LocalResponseNorm,
         )
 
-        params: List[Dict[str, Any]] = []
-        memo: Set[torch.nn.parameter.Parameter] = set()
+        params: list[dict[str, Any]] = []
+        memo: set[torch.nn.parameter.Parameter] = set()
         for module_name, module in model.named_modules():
             for module_param_name, value in module.named_parameters(recurse=False):
                 if not value.requires_grad:
@@ -216,7 +208,7 @@ class Trainer(DefaultTrainer):
                     hyperparams["weight_decay"] = weight_decay_embed
                 params.append({"params": [value], **hyperparams})
 
-        def maybe_add_full_model_gradient_clipping(optim):
+        def maybe_add_full_model_gradient_clipping(optim: Any) -> Any:
             # detectron2 doesn't have full model gradient clipping now
             clip_norm_val = cfg.SOLVER.CLIP_GRADIENTS.CLIP_VALUE
             enable = (
@@ -226,7 +218,7 @@ class Trainer(DefaultTrainer):
             )
 
             class FullModelGradientClippingOptimizer(optim):
-                def step(self, closure=None):
+                def step(self, closure: Optional[Any] = None) -> None:
                     all_params = itertools.chain(
                         *[x["params"] for x in self.param_groups]
                     )
@@ -251,7 +243,7 @@ class Trainer(DefaultTrainer):
         return optimizer
 
     @classmethod
-    def test_with_TTA(cls, cfg, model):
+    def test_with_TTA(cls, cfg: Any, model: Any) -> Any:
         logger = logging.getLogger("detectron2.trainer")
         # In the end of training, run an evaluation with TTA.
         logger.info("Running inference with test-time augmentation ...")
@@ -267,7 +259,7 @@ class Trainer(DefaultTrainer):
         return res
 
 
-def setup(args):
+def setup(args: Any) -> Any:
     """
     Create configs and perform basic setups.
     """
@@ -287,7 +279,7 @@ def setup(args):
     return cfg
 
 
-def main(args):
+def main(args: Any) -> Any:
     cfg = setup(args)
 
     if args.eval_only:

@@ -7,6 +7,7 @@ import os
 import os.path as osp
 from glob import glob
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import tqdm
@@ -189,8 +190,8 @@ full_clsID_to_trID = {
 
 
 def convert_to_trainID(
-    maskpath, out_mask_dir, is_train, clsID_to_trID=full_clsID_to_trID, suffix=""
-):
+    maskpath: Union[str, Path], out_mask_dir: Union[str, Path], is_train: bool, clsID_to_trID: dict[int, int] = full_clsID_to_trID, suffix: str = ""
+) -> None:
     mask = np.array(Image.open(maskpath))
     mask_copy = np.ones_like(mask, dtype=np.uint8) * 255
     for clsID, trID in clsID_to_trID.items():

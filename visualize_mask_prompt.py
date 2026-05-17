@@ -14,7 +14,7 @@ This script produces:
 
 import argparse
 import os
-import re
+from typing import Any
 
 import numpy as np
 import torch
@@ -32,7 +32,7 @@ except Exception:
     print("Warning: matplotlib not available. Only raw NumPy arrays will be saved.")
 
 
-def find_mask_embedding(state_dict):
+def find_mask_embedding(state_dict: dict[str, Any]) -> torch.Tensor:
     """Search state_dict keys for mask_embedding."""
     candidates = [k for k in state_dict.keys() if "mask_embedding" in k]
     if not candidates:
@@ -46,7 +46,7 @@ def find_mask_embedding(state_dict):
     return state_dict[candidates[0]]
 
 
-def pca_to_rgb(X, n_components=3):
+def pca_to_rgb(X: np.ndarray, n_components: int = 3) -> np.ndarray:
     """
     X: (N, C) numpy array.
     Returns: (N, 3) numpy array in [0, 1].
@@ -68,7 +68,7 @@ def pca_to_rgb(X, n_components=3):
     return proj
 
 
-def save_image_array(arr, path, title=""):
+def save_image_array(arr: np.ndarray, path: str, title: str = "") -> None:
     """arr: (H, W, 3) RGB in [0,1] or (H, W) grayscale."""
     if not HAS_MPL:
         # Fallback: save raw npy
@@ -86,7 +86,7 @@ def save_image_array(arr, path, title=""):
     plt.close()
 
 
-def visualize_mask_embedding(tensor: torch.Tensor, out_dir: str, prefix: str = "layer"):
+def visualize_mask_embedding(tensor: torch.Tensor, out_dir: str, prefix: str = "layer") -> None:
     """
     tensor: (D, G, C) where G = grid_h * grid_w
     """
@@ -175,7 +175,7 @@ def visualize_mask_embedding(tensor: torch.Tensor, out_dir: str, prefix: str = "
     print(f"Saved visualizations to: {out_dir}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Visualize mask prompt embeddings as images."
     )

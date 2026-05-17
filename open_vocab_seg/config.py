@@ -4,7 +4,7 @@
 from detectron2.config import CfgNode as CN
 
 
-def add_mask_former_default_config(cfg):
+def add_mask_former_default_config(cfg: CN) -> None:
     # data config
     # select the dataset mapper
     cfg.INPUT.DATASET_MAPPER_NAME = "mask_former_semantic"
@@ -88,7 +88,7 @@ def add_mask_former_default_config(cfg):
     cfg.MODEL.SWIN.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
 
 
-def add_our_config(cfg):
+def add_our_config(cfg: CN) -> None:
     cfg.TEST.SLIDING_WINDOW = False
     cfg.TEST.SLIDING_TILE_SIZE = 224
     cfg.TEST.SLIDING_OVERLAP = 2 / 3.0
@@ -125,9 +125,19 @@ def add_our_config(cfg):
     cfg.WANDB.NAME = None
 
 
-def add_ovseg_config(cfg):
+def add_sam3_config(cfg: CN) -> None:
+    cfg.MODEL.SAM3 = CN()
+    cfg.MODEL.SAM3.ENABLED = False
+    cfg.MODEL.SAM3.MODEL_NAME = "facebook/sam3"
+    cfg.MODEL.SAM3.MASK_THRESHOLD = 0.5
+    cfg.MODEL.SAM3.MAX_MASKS = 200
+    cfg.MODEL.SAM3.PROMPT_SOURCE = "dataset"
+
+
+def add_ovseg_config(cfg: CN) -> None:
     """
     Add config for open_vocab_seg.
     """
     add_mask_former_default_config(cfg)
     add_our_config(cfg)
+    add_sam3_config(cfg)

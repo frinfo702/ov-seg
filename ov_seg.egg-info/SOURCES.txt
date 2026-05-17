@@ -22,7 +22,11 @@ open_vocab_seg/evaluation/__init__.py
 open_vocab_seg/evaluation/generalized_sem_seg_evaluation.py
 open_vocab_seg/modeling/__init__.py
 open_vocab_seg/modeling/criterion.py
+open_vocab_seg/modeling/mask_former_model.py
 open_vocab_seg/modeling/matcher.py
+open_vocab_seg/modeling/ovsam_seg_model.py
+open_vocab_seg/modeling/sam3_proposal.py
+open_vocab_seg/modeling/sam3_worker.py
 open_vocab_seg/modeling/backbone/__init__.py
 open_vocab_seg/modeling/backbone/clip_resnet.py
 open_vocab_seg/modeling/backbone/swin.py

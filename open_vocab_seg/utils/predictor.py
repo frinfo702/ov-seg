@@ -1,19 +1,20 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
+from typing import Any, Optional
+
 import numpy as np
 import torch
-
 from detectron2.data import MetadataCatalog
 from detectron2.engine.defaults import DefaultPredictor
 from detectron2.utils.visualizer import ColorMode, Visualizer
 
 
 class OVSegPredictor(DefaultPredictor):
-    def __init__(self, cfg):
+    def __init__(self, cfg: Any) -> None:
         super().__init__(cfg)
 
-    def __call__(self, original_image, class_names):
+    def __call__(self, original_image: np.ndarray, class_names: list[str]) -> dict[str, Any]:
         """
         Args:
             original_image (np.ndarray): an image of shape (H, W, C) (in BGR order).
@@ -37,11 +38,11 @@ class OVSegPredictor(DefaultPredictor):
             return predictions
 
 class OVSegVisualizer(Visualizer):
-    def __init__(self, img_rgb, metadata=None, scale=1.0, instance_mode=ColorMode.IMAGE, class_names=None):
+    def __init__(self, img_rgb: np.ndarray, metadata: Any = None, scale: float = 1.0, instance_mode: Any = ColorMode.IMAGE, class_names: Optional[list[str]] = None) -> None:
         super().__init__(img_rgb, metadata, scale, instance_mode)
         self.class_names = class_names
 
-    def draw_sem_seg(self, sem_seg, area_threshold=None, alpha=0.8):
+    def draw_sem_seg(self, sem_seg: Any, area_threshold: Optional[int] = None, alpha: float = 0.8) -> Any:
         """
         Draw semantic segmentation predictions/labels.
 
@@ -75,14 +76,14 @@ class OVSegVisualizer(Visualizer):
                 edge_color=(1.0, 1.0, 240.0 / 255),
                 text=text,
                 alpha=alpha,
-                area_threshold=area_threshold,
+                area_threshold=area_threshold if area_threshold is not None else 0,
             )
         return self.output
 
 
 
-class VisualizationDemo(object):
-    def __init__(self, cfg, instance_mode=ColorMode.IMAGE, parallel=False):
+class VisualizationDemo:
+    def __init__(self, cfg: Any, instance_mode: Any = ColorMode.IMAGE, parallel: bool = False) -> None:
         """
         Args:
             cfg (CfgNode):
@@ -103,7 +104,7 @@ class VisualizationDemo(object):
         else:
             self.predictor = OVSegPredictor(cfg)
 
-    def run_on_image(self, image, class_names):
+    def run_on_image(self, image: np.ndarray, class_names: list[str]) -> tuple[dict[str, Any], Any]:
         """
         Args:
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).

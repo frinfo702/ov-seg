@@ -2,13 +2,14 @@
 # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/detr.py
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
+from typing import Any, Optional
+
 import fvcore.nn.weight_init as weight_init
 import torch
-from torch import nn
-from torch.nn import functional as F
-
 from detectron2.config import configurable
 from detectron2.layers import Conv2d
+from torch import nn
+from torch.nn import functional as F
 
 from .position_encoding import PositionEmbeddingSine
 from .transformer import Transformer
@@ -18,8 +19,8 @@ class TransformerPredictor(nn.Module):
     @configurable
     def __init__(
         self,
-        in_channels,
-        mask_classification=True,
+        in_channels: int,
+        mask_classification: bool = True,
         *,
         num_classes: int,
         hidden_dim: int,
@@ -33,7 +34,7 @@ class TransformerPredictor(nn.Module):
         deep_supervision: bool,
         mask_dim: int,
         enforce_input_project: bool,
-    ):
+    ) -> None:
         """
         NOTE: this interface is experimental.
         Args:
@@ -91,7 +92,7 @@ class TransformerPredictor(nn.Module):
         self.mask_embed = MLP(hidden_dim, hidden_dim, mask_dim, 3)
 
     @classmethod
-    def from_config(cls, cfg, in_channels, mask_classification):
+    def from_config(cls, cfg: Any, in_channels: int, mask_classification: bool) -> dict[str, Any]:
         ret = {}
         ret["in_channels"] = in_channels
         ret["mask_classification"] = mask_classification
@@ -113,7 +114,7 @@ class TransformerPredictor(nn.Module):
 
         return ret
 
-    def forward(self, x, mask_features):
+    def forward(self, x: torch.Tensor, mask_features: torch.Tensor) -> dict[str, Any]:
         pos = self.pe_layer(x)
 
         src = x
@@ -149,7 +150,7 @@ class TransformerPredictor(nn.Module):
         return out
 
     @torch.jit.unused
-    def _set_aux_loss(self, outputs_class, outputs_seg_masks):
+    def _set_aux_loss(self, outputs_class: Optional[torch.Tensor], outputs_seg_masks: torch.Tensor) -> list[dict[str, torch.Tensor]]:
         # this is a workaround to make torchscript happy, as torchscript
         # doesn't support dictionary with non-homogeneous values, such
         # as a dict having both a Tensor and a list.
@@ -165,7 +166,7 @@ class TransformerPredictor(nn.Module):
 class MLP(nn.Module):
     """Very simple multi-layer perceptron (also called FFN)"""
 
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int) -> None:
         super().__init__()
         self.num_layers = num_layers
         h = [hidden_dim] * (num_layers - 1)
@@ -173,7 +174,7 @@ class MLP(nn.Module):
             nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim])
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         for i, layer in enumerate(self.layers):
             x = F.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
         return x

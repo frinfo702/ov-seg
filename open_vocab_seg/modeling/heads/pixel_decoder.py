@@ -2,21 +2,21 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import logging
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import fvcore.nn.weight_init as weight_init
-from torch import nn
-from torch.nn import functional as F
-
+import torch
 from detectron2.config import configurable
 from detectron2.layers import Conv2d, ShapeSpec, get_norm
 from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
+from torch import nn
+from torch.nn import functional as F
 
 from ..transformer.position_encoding import PositionEmbeddingSine
 from ..transformer.transformer import TransformerEncoder, TransformerEncoderLayer
 
 
-def build_pixel_decoder(cfg, input_shape):
+def build_pixel_decoder(cfg: Any, input_shape: dict[str, ShapeSpec]) -> nn.Module:
     """
     Build a pixel decoder from `cfg.MODEL.MASK_FORMER.PIXEL_DECODER_NAME`.
     """
@@ -36,12 +36,12 @@ class BasePixelDecoder(nn.Module):
     @configurable
     def __init__(
         self,
-        input_shape: Dict[str, ShapeSpec],
+        input_shape: dict[str, ShapeSpec],
         *,
         conv_dim: int,
         mask_dim: int,
         norm: Optional[Union[str, Callable]] = None,
-    ):
+    ) -> None:
         """
         NOTE: this interface is experimental.
         Args:
@@ -52,7 +52,7 @@ class BasePixelDecoder(nn.Module):
         """
         super().__init__()
 
-        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
+        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride or 0)  # pyright: ignore[reportAssignmentType]
         self.in_features = [k for k, v in input_shape]  # starting from "res2" to "res5"
         feature_channels = [v.channels for k, v in input_shape]
 
@@ -74,7 +74,7 @@ class BasePixelDecoder(nn.Module):
                     activation=F.relu,
                 )
                 weight_init.c2_xavier_fill(output_conv)
-                self.add_module("layer_{}".format(idx + 1), output_conv)
+                self.add_module(f"layer_{idx + 1}", output_conv)
 
                 lateral_convs.append(None)
                 output_convs.append(output_conv)
@@ -101,8 +101,8 @@ class BasePixelDecoder(nn.Module):
                 )
                 weight_init.c2_xavier_fill(lateral_conv)
                 weight_init.c2_xavier_fill(output_conv)
-                self.add_module("adapter_{}".format(idx + 1), lateral_conv)
-                self.add_module("layer_{}".format(idx + 1), output_conv)
+                self.add_module(f"adapter_{idx + 1}", lateral_conv)
+                self.add_module(f"layer_{idx + 1}", output_conv)
 
                 lateral_convs.append(lateral_conv)
                 output_convs.append(output_conv)
@@ -122,7 +122,7 @@ class BasePixelDecoder(nn.Module):
         weight_init.c2_xavier_fill(self.mask_features)
 
     @classmethod
-    def from_config(cls, cfg, input_shape: Dict[str, ShapeSpec]):
+    def from_config(cls, cfg: Any, input_shape: dict[str, ShapeSpec]) -> dict[str, Any]:
         ret = {}
         ret["input_shape"] = {
             k: v
@@ -134,7 +134,7 @@ class BasePixelDecoder(nn.Module):
         ret["norm"] = cfg.MODEL.SEM_SEG_HEAD.NORM
         return ret
 
-    def forward_features(self, features):
+    def forward_features(self, features: dict[str, torch.Tensor]) -> tuple[torch.Tensor, None]:
         # Reverse feature maps into top-down order (from low to high resolution)
         for idx, f in enumerate(self.in_features[::-1]):
             x = features[f]
@@ -149,7 +149,7 @@ class BasePixelDecoder(nn.Module):
                 y = output_conv(y)
         return self.mask_features(y), None
 
-    def forward(self, features, targets=None):
+    def forward(self, features: dict[str, torch.Tensor], targets: Optional[Any] = None) -> tuple[torch.Tensor, None]:
         logger = logging.getLogger(__name__)
         logger.warning(
             "Calling forward() may cause unpredicted behavior of PixelDecoder module."
@@ -160,14 +160,14 @@ class BasePixelDecoder(nn.Module):
 class TransformerEncoderOnly(nn.Module):
     def __init__(
         self,
-        d_model=512,
-        nhead=8,
-        num_encoder_layers=6,
-        dim_feedforward=2048,
-        dropout=0.1,
-        activation="relu",
-        normalize_before=False,
-    ):
+        d_model: int = 512,
+        nhead: int = 8,
+        num_encoder_layers: int = 6,
+        dim_feedforward: int = 2048,
+        dropout: float = 0.1,
+        activation: str = "relu",
+        normalize_before: bool = False,
+    ) -> None:
         super().__init__()
 
         encoder_layer = TransformerEncoderLayer(
@@ -183,12 +183,12 @@ class TransformerEncoderOnly(nn.Module):
         self.d_model = d_model
         self.nhead = nhead
 
-    def _reset_parameters(self):
+    def _reset_parameters(self) -> None:
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def forward(self, src, mask, pos_embed):
+    def forward(self, src: torch.Tensor, mask: Optional[torch.Tensor], pos_embed: torch.Tensor) -> torch.Tensor:
         # flatten NxCxHxW to HWxNxC
         bs, c, h, w = src.shape
         src = src.flatten(2).permute(2, 0, 1)
@@ -205,7 +205,7 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
     @configurable
     def __init__(
         self,
-        input_shape: Dict[str, ShapeSpec],
+        input_shape: dict[str, ShapeSpec],
         *,
         transformer_dropout: float,
         transformer_nheads: int,
@@ -215,7 +215,7 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
         conv_dim: int,
         mask_dim: int,
         norm: Optional[Union[str, Callable]] = None,
-    ):
+    ) -> None:
         """
         NOTE: this interface is experimental.
         Args:
@@ -231,9 +231,9 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
         """
         super().__init__(input_shape, conv_dim=conv_dim, mask_dim=mask_dim, norm=norm)
 
-        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
+        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride or 0)  # pyright: ignore[reportAssignmentType]
         self.in_features = [k for k, v in input_shape]  # starting from "res2" to "res5"
-        feature_strides = [v.stride for k, v in input_shape]
+        [v.stride for k, v in input_shape]
         feature_channels = [v.channels for k, v in input_shape]
 
         in_channels = feature_channels[len(self.in_features) - 1]
@@ -264,12 +264,12 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
             activation=F.relu,
         )
         weight_init.c2_xavier_fill(output_conv)
-        delattr(self, "layer_{}".format(len(self.in_features)))
-        self.add_module("layer_{}".format(len(self.in_features)), output_conv)
+        delattr(self, f"layer_{len(self.in_features)}")
+        self.add_module(f"layer_{len(self.in_features)}", output_conv)
         self.output_convs[0] = output_conv
 
     @classmethod
-    def from_config(cls, cfg, input_shape: Dict[str, ShapeSpec]):
+    def from_config(cls, cfg: Any, input_shape: dict[str, ShapeSpec]) -> dict[str, Any]:
         ret = super().from_config(cfg, input_shape)
         ret["transformer_dropout"] = cfg.MODEL.MASK_FORMER.DROPOUT
         ret["transformer_nheads"] = cfg.MODEL.MASK_FORMER.NHEADS
@@ -280,7 +280,7 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
         ret["transformer_pre_norm"] = cfg.MODEL.MASK_FORMER.PRE_NORM
         return ret
 
-    def forward_features(self, features):
+    def forward_features(self, features: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         # Reverse feature maps into top-down order (from low to high resolution)
         for idx, f in enumerate(self.in_features[::-1]):
             x = features[f]
@@ -300,7 +300,7 @@ class TransformerEncoderPixelDecoder(BasePixelDecoder):
                 y = output_conv(y)
         return self.mask_features(y), transformer_encoder_features
 
-    def forward(self, features, targets=None):
+    def forward(self, features: dict[str, torch.Tensor], targets: Optional[Any] = None) -> tuple[torch.Tensor, torch.Tensor]:
         logger = logging.getLogger(__name__)
         logger.warning(
             "Calling forward() may cause unpredicted behavior of PixelDecoder module."

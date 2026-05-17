@@ -1,13 +1,12 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-import sitecustomize  # noqa: F401
-
 import argparse
 import glob
 import multiprocessing as mp
 import os
 import time
+from typing import Any
 
 import cv2
 import tqdm
@@ -16,6 +15,7 @@ from detectron2.data.detection_utils import read_image
 from detectron2.projects.deeplab import add_deeplab_config
 from detectron2.utils.logger import setup_logger
 
+import sitecustomize  # noqa: F401
 from open_vocab_seg import add_ovseg_config
 from open_vocab_seg.utils import VisualizationDemo
 
@@ -23,7 +23,7 @@ from open_vocab_seg.utils import VisualizationDemo
 WINDOW_NAME = "Open vocabulary segmentation"
 
 
-def setup_cfg(args):
+def setup_cfg(args: Any) -> Any:
     # load config from file and command-line arguments
     cfg = get_cfg()
     # for poly lr schedule
@@ -35,7 +35,7 @@ def setup_cfg(args):
     return cfg
 
 
-def get_parser():
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Detectron2 demo for open vocabulary segmentation"
     )

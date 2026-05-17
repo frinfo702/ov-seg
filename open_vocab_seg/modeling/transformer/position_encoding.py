@@ -6,6 +6,7 @@
 Various positional encodings for the transformer.
 """
 import math
+from typing import Optional
 
 import torch
 from torch import nn
@@ -18,8 +19,8 @@ class PositionEmbeddingSine(nn.Module):
     """
 
     def __init__(
-        self, num_pos_feats=64, temperature=10000, normalize=False, scale=None
-    ):
+        self, num_pos_feats: int = 64, temperature: float = 10000, normalize: bool = False, scale: Optional[float] = None
+    ) -> None:
         super().__init__()
         self.num_pos_feats = num_pos_feats
         self.temperature = temperature
@@ -30,7 +31,7 @@ class PositionEmbeddingSine(nn.Module):
             scale = 2 * math.pi
         self.scale = scale
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         if mask is None:
             mask = torch.zeros(
                 (x.size(0), x.size(2), x.size(3)), device=x.device, dtype=torch.bool

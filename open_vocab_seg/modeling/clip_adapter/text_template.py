@@ -4,7 +4,6 @@
 # https://github.com/MendelXu/zsseg.baseline/blob/master/mask_former/modeling/clip_adapter/text_prompt.py
 # https://github.com/MendelXu/zsseg.baseline/blob/master/mask_former/modeling/clip_adapter/utils.py
 
-from typing import List
 
 import clip
 import torch
@@ -111,30 +110,30 @@ VILD_PROMPT = [
 ]
 
 class PromptExtractor(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._buffer_init = False
 
-    def init_buffer(self, clip_model):
+    def init_buffer(self, clip_model: nn.Module) -> None:
         self._buffer_init = True
 
-    def forward(self, noun_list: List[str], clip_model: nn.Module):
+    def forward(self, noun_list: list[str], clip_model: nn.Module) -> torch.Tensor:
         raise NotImplementedError()
 
 
 class PredefinedPromptExtractor(PromptExtractor):
-    def __init__(self, templates: List[str]):
+    def __init__(self, templates: list[str]) -> None:
         super().__init__()
         self.templates = templates
 
-    def forward(self, noun_list: List[str], clip_model: nn.Module):
+    def forward(self, noun_list: list[str], clip_model: nn.Module) -> torch.Tensor:
         text_features_bucket = []
         for template in self.templates:
             noun_tokens = [clip.tokenize(template.format(noun)) for noun in noun_list]
-            text_inputs = torch.cat(noun_tokens).to(
-                clip_model.text_projection.data.device
+            text_inputs = torch.cat(noun_tokens).to(  # pyright: ignore[reportCallIssue]
+                clip_model.text_projection.data.device  # pyright: ignore[reportArgumentType]
             )
-            text_features = clip_model.encode_text(text_inputs)
+            text_features = clip_model.encode_text(text_inputs)  # pyright: ignore[reportCallIssue]
             text_features /= text_features.norm(dim=-1, keepdim=True)
             text_features_bucket.append(text_features)
         del text_inputs
@@ -146,10 +145,10 @@ class PredefinedPromptExtractor(PromptExtractor):
 
 
 class ImageNetPromptExtractor(PredefinedPromptExtractor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(IMAGENET_PROMPT)
 
 
 class VILDPromptExtractor(PredefinedPromptExtractor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(VILD_PROMPT)

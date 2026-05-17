@@ -4,16 +4,13 @@
 # https://github.com/MendelXu/zsseg.baseline/blob/master/mask_former/modeling/heads/zero_shot_mask_former_head.py
 
 import logging
-from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
-import fvcore.nn.weight_init as weight_init
-from torch import nn
-from torch.nn import functional as F
-
+import torch
 from detectron2.config import configurable
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
+from detectron2.layers import ShapeSpec
 from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
+from torch import nn
 
 from ..transformer.open_vocab_transformer_predictor import OpenVocabTransformerPredictor
 from .pixel_decoder import build_pixel_decoder
@@ -26,14 +23,14 @@ class OpenVocabMaskFormerHead(nn.Module):
 
     def _load_from_state_dict(
         self,
-        state_dict,
-        prefix,
-        local_metadata,
-        strict,
-        missing_keys,
-        unexpected_keys,
-        error_msgs,
-    ):
+        state_dict: dict[str, Any],
+        prefix: str,
+        local_metadata: dict[str, Any],
+        strict: bool,
+        missing_keys: list[str],
+        unexpected_keys: list[str],
+        error_msgs: list[str],
+    ) -> None:
         version = local_metadata.get("version", None)
         if version is None or version < 2:
             # Do not warn if train from scratch
@@ -58,7 +55,7 @@ class OpenVocabMaskFormerHead(nn.Module):
     @configurable
     def __init__(
         self,
-        input_shape: Dict[str, ShapeSpec],
+        input_shape: dict[str, ShapeSpec],
         *,
         num_classes: int,
         pixel_decoder: nn.Module,
@@ -67,7 +64,7 @@ class OpenVocabMaskFormerHead(nn.Module):
         # extra parameters
         transformer_predictor: nn.Module,
         transformer_in_feature: str,
-    ):
+    ) -> None:
         """
         NOTE: this interface is experimental.
         Args:
@@ -80,10 +77,10 @@ class OpenVocabMaskFormerHead(nn.Module):
             transformer_in_feature: input feature name to the transformer_predictor
         """
         super().__init__()
-        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
+        input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride or 0)  # pyright: ignore[reportAssignmentType]
         self.in_features = [k for k, v in input_shape]
-        feature_strides = [v.stride for k, v in input_shape]
-        feature_channels = [v.channels for k, v in input_shape]
+        [v.stride for k, v in input_shape]
+        [v.channels for k, v in input_shape]
 
         self.ignore_value = ignore_value
         self.common_stride = 4
@@ -96,7 +93,7 @@ class OpenVocabMaskFormerHead(nn.Module):
         self.num_classes = num_classes
 
     @classmethod
-    def from_config(cls, cfg, input_shape: Dict[str, ShapeSpec]):
+    def from_config(cls, cfg: Any, input_shape: dict[str, ShapeSpec]) -> dict[str, Any]:
         return {
             "input_shape": {
                 k: v
@@ -108,23 +105,23 @@ class OpenVocabMaskFormerHead(nn.Module):
             "pixel_decoder": build_pixel_decoder(cfg, input_shape),
             "loss_weight": cfg.MODEL.SEM_SEG_HEAD.LOSS_WEIGHT,
             "transformer_in_feature": cfg.MODEL.MASK_FORMER.TRANSFORMER_IN_FEATURE,
-            "transformer_predictor": OpenVocabTransformerPredictor(
+            "transformer_predictor": OpenVocabTransformerPredictor(  # pyright: ignore[reportCallIssue]
                 cfg,
                 cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
                 if cfg.MODEL.MASK_FORMER.TRANSFORMER_IN_FEATURE == "transformer_encoder"
                 else input_shape[cfg.MODEL.MASK_FORMER.TRANSFORMER_IN_FEATURE].channels,
-                mask_classification=True,
+                mask_classification=True,  # pyright: ignore[reportCallIssue]
             ),
         }
 
-    def forward(self, features):
+    def forward(self, features: dict[str, torch.Tensor]) -> dict[str, Any]:
         return self.layers(features)
 
-    def layers(self, features):
+    def layers(self, features: dict[str, torch.Tensor]) -> dict[str, Any]:
         (
             mask_features,
             transformer_encoder_features,
-        ) = self.pixel_decoder.forward_features(features)
+        ) = self.pixel_decoder.forward_features(features)  # pyright: ignore[reportCallIssue]
         if self.transformer_in_feature == "transformer_encoder":
             assert (
                 transformer_encoder_features is not None
@@ -136,10 +133,10 @@ class OpenVocabMaskFormerHead(nn.Module):
             )
         return predictions
 
-    def freeze_pretrained(self):
+    def freeze_pretrained(self) -> None:
         for name, module in self.named_children():
             if name not in ["predictor"]:
                 for param in module.parameters():
                     param.requires_grad = False
             else:
-                module.freeze_pretrained()
+                module.freeze_pretrained()  # pyright: ignore[reportCallIssue]

@@ -1,33 +1,33 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
+from typing import Optional
+
+import numpy as np
 import torch
 from torch.nn import functional as F
-import numpy as np
 
 try:
     import pydensecrf.densecrf as dcrf
     from pydensecrf.utils import (
-        unary_from_softmax,
         unary_from_labels,
-        create_pairwise_bilateral,
-        create_pairwise_gaussian,
+        unary_from_softmax,
     )
 except:
     dcrf = None
 
 
 def dense_crf_post_process(
-    logits,
-    image,
-    n_labels=None,
-    max_iters=5,
-    pos_xy_std=(3, 3),
-    pos_w=3,
-    bi_xy_std=(80, 80),
-    bi_rgb_std=(13, 13, 13),
-    bi_w=10,
-):
+    logits: torch.Tensor,
+    image: np.ndarray,
+    n_labels: Optional[int] = None,
+    max_iters: int = 5,
+    pos_xy_std: tuple[float, float] = (3, 3),
+    pos_w: float = 3,
+    bi_xy_std: tuple[float, float] = (80, 80),
+    bi_rgb_std: tuple[float, float, float] = (13, 13, 13),
+    bi_w: float = 10,
+) -> torch.Tensor:
     """
     logits : [C,H,W]
     image : [3,H,W]
@@ -37,7 +37,7 @@ def dense_crf_post_process(
             "pydensecrf is required to perform dense crf inference."
         )
     if isinstance(logits, torch.Tensor):
-        logits = F.softmax(logits, dim=0).detach().cpu().numpy()
+        logits = F.softmax(logits, dim=0).detach().cpu().numpy()  # pyright: ignore[reportAssignmentType]
         U = unary_from_softmax(logits)
         n_labels = logits.shape[0]
     elif logits.ndim == 3:
@@ -70,5 +70,5 @@ def dense_crf_post_process(
     )
     # Run five inference steps.
     logits = d.inference(max_iters)
-    logits = np.asarray(logits).reshape((n_labels, image.shape[0], image.shape[1]))
+    logits = np.asarray(logits).reshape((n_labels, image.shape[0], image.shape[1]))  # pyright: ignore[reportAssignmentType]
     return torch.from_numpy(logits)

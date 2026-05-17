@@ -2,19 +2,20 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 import copy
-from itertools import count
+import logging
 import math
+from itertools import count
+from typing import Any, Optional
+
 import numpy as np
 import torch
-from fvcore.transforms import HFlipTransform
-from torch import nn
-from torch.nn.parallel import DistributedDataParallel
-
 from detectron2.data.detection_utils import read_image
 from detectron2.modeling import DatasetMapperTTA
 from detectron2.modeling.postprocessing import sem_seg_postprocess
-import logging
 from detectron2.utils.logger import log_every_n, log_first_n
+from fvcore.transforms import HFlipTransform
+from torch import nn
+from torch.nn.parallel import DistributedDataParallel
 
 __all__ = [
     "SemanticSegmentorWithTTA",
@@ -27,7 +28,7 @@ class SemanticSegmentorWithTTA(nn.Module):
     Its :meth:`__call__` method has the same interface as :meth:`SemanticSegmentor.forward`.
     """
 
-    def __init__(self, cfg, model, tta_mapper=None, batch_size=1):
+    def __init__(self, cfg: Any, model: nn.Module, tta_mapper: Optional[Any] = None, batch_size: int = 1) -> None:
         """
         Args:
             cfg (CfgNode):
@@ -45,11 +46,11 @@ class SemanticSegmentorWithTTA(nn.Module):
         self.model = model
 
         if tta_mapper is None:
-            tta_mapper = DatasetMapperTTA(cfg)
+            tta_mapper = DatasetMapperTTA(cfg)  # pyright: ignore[reportCallIssue]
         self.tta_mapper = tta_mapper
         self.batch_size = batch_size
 
-    def _inference_with_model(self, inputs):
+    def _inference_with_model(self, inputs: list[dict[str, Any]]) -> list[dict[str, torch.Tensor]]:
         if self.cfg.TEST.SLIDING_WINDOW:
             log_first_n(logging.INFO, "Using sliding window to test")
 
@@ -73,7 +74,7 @@ class SemanticSegmentorWithTTA(nn.Module):
                     if k not in ["image", "height", "width"]
                 }
                 log_every_n(
-                    logging.INFO, "split {} to {}".format(image_size, tile_size)
+                    logging.INFO, f"split {image_size} to {tile_size}"
                 )
                 overlap = self.cfg.TEST.SLIDING_OVERLAP
                 stride = math.ceil(tile_size[0] * (1 - overlap))
@@ -128,7 +129,7 @@ class SemanticSegmentorWithTTA(nn.Module):
                             :, y1:y2, x1:x2
                         ] += prediction  # accumulate the predictions also in the overlapping regions
 
-                full_probs /= count_predictions
+                full_probs /= count_predictions  # pyright: ignore[reportOperatorIssue]
                 full_probs = sem_seg_postprocess(
                     full_probs,
                     image_size,
@@ -142,7 +143,7 @@ class SemanticSegmentorWithTTA(nn.Module):
             log_first_n(logging.INFO, "Using whole image to test")
             return self.model(inputs)
 
-    def _batch_inference(self, batched_inputs):
+    def _batch_inference(self, batched_inputs: list[dict[str, Any]]) -> list[dict[str, torch.Tensor]]:
         """
         Execute inference on a list of inputs,
         using batch size = self.batch_size, instead of the length of the list.
@@ -158,12 +159,12 @@ class SemanticSegmentorWithTTA(nn.Module):
                 inputs = []
         return outputs
 
-    def __call__(self, batched_inputs):
+    def __call__(self, batched_inputs: list[dict[str, Any]]) -> list[dict[str, torch.Tensor]]:
         """
         Same input/output format as :meth:`SemanticSegmentor.forward`
         """
 
-        def _maybe_read_image(dataset_dict):
+        def _maybe_read_image(dataset_dict: dict[str, Any]) -> dict[str, Any]:
             ret = copy.copy(dataset_dict)
             if "image" not in ret:
                 image = read_image(ret.pop("file_name"), self.model.input_format)
@@ -178,7 +179,7 @@ class SemanticSegmentorWithTTA(nn.Module):
 
         return [self._inference_one_image(_maybe_read_image(x)) for x in batched_inputs]
 
-    def _inference_one_image(self, input):
+    def _inference_one_image(self, input: dict[str, Any]) -> dict[str, torch.Tensor]:
         """
         Args:
             input (dict): one dataset dict with "image" field being a CHW tensor
@@ -195,7 +196,7 @@ class SemanticSegmentorWithTTA(nn.Module):
         # outputs = [output.detach() for output in outputs]
         return self._merge_auged_output(outputs, tfms)
 
-    def _merge_auged_output(self, outputs, tfms):
+    def _merge_auged_output(self, outputs: list[dict[str, torch.Tensor]], tfms: list[Any]) -> dict[str, torch.Tensor]:
         new_outputs = []
         for output, tfm in zip(outputs, tfms):
             if any(isinstance(t, HFlipTransform) for t in tfm.transforms):
@@ -211,7 +212,7 @@ class SemanticSegmentorWithTTA(nn.Module):
         del new_outputs
         return {"sem_seg": final_predictions}
 
-    def _get_augmented_inputs(self, input):
+    def _get_augmented_inputs(self, input: dict[str, Any]) -> tuple[list[dict[str, Any]], list[Any]]:
         augmented_inputs = self.tta_mapper(input)
         tfms = [x.pop("transforms") for x in augmented_inputs]
         return augmented_inputs, tfms

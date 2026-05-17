@@ -3,25 +3,20 @@
 
 import itertools
 import logging
-import numpy as np
-from collections import Counter
-import torch.utils.data
-from tabulate import tabulate
-from termcolor import colored
+from typing import Any, Callable, Optional, Union
 
-from detectron2.utils.logger import _log_api_usage, log_first_n
-from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
+import numpy as np
 import torch.utils.data
 from detectron2.config import configurable
 from detectron2.data.build import (
     build_batch_data_loader,
-    trivial_batch_collator,
-    load_proposals_into_dataset,
-    filter_images_with_only_crowd_annotations,
     filter_images_with_few_keypoints,
+    filter_images_with_only_crowd_annotations,
+    load_proposals_into_dataset,
     print_instances_class_histogram,
+    trivial_batch_collator,
 )
-
+from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
 from detectron2.data.common import DatasetFromList, MapDataset
 from detectron2.data.dataset_mapper import DatasetMapper
 from detectron2.data.detection_utils import check_metadata_consistency
@@ -31,6 +26,9 @@ from detectron2.data.samplers import (
     RepeatFactorTrainingSampler,
     TrainingSampler,
 )
+from detectron2.utils.logger import _log_api_usage, log_first_n
+from tabulate import tabulate
+from termcolor import colored
 
 """
 This file contains the default logic to build a dataloader for training or testing.
@@ -42,7 +40,7 @@ __all__ = [
 ]
 
 
-def print_classification_instances_class_histogram(dataset_dicts, class_names):
+def print_classification_instances_class_histogram(dataset_dicts: list[dict[str, Any]], class_names: list[str]) -> None:
     """
     Args:
         dataset_dicts (list[dict]): list of dataset dicts.
@@ -62,7 +60,7 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
 
     N_COLS = min(6, len(class_names) * 2)
 
-    def short_name(x):
+    def short_name(x: str) -> str:
         # make long class names shorter. useful for lvis
         if len(x) > 13:
             return x[:11] + ".."
@@ -87,14 +85,14 @@ def print_classification_instances_class_histogram(dataset_dicts, class_names):
     )
     log_first_n(
         logging.INFO,
-        "Distribution of instances among all {} categories:\n".format(num_classes)
+        f"Distribution of instances among all {num_classes} categories:\n"
         + colored(table, "cyan"),
         key="message",
     )
 
 
-def wrap_metas(dataset_dict, **kwargs):
-    def _assign_attr(data_dict: dict, **kwargs):
+def wrap_metas(dataset_dict: list[dict[str, Any]], **kwargs: Any) -> list[dict[str, Any]]:
+    def _assign_attr(data_dict: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         assert not any(
             [key in data_dict for key in kwargs]
         ), "Assigned attributes should not exist in the original sample."
@@ -105,8 +103,8 @@ def wrap_metas(dataset_dict, **kwargs):
 
 
 def get_detection_dataset_dicts(
-    names, filter_empty=True, min_keypoints=0, proposal_files=None
-):
+    names: Union[str, list[str]], filter_empty: bool = True, min_keypoints: int = 0, proposal_files: Optional[list[str]] = None
+) -> list[dict[str, Any]]:
     """
     Load and prepare dataset dicts for instance detection/segmentation and semantic segmentation.
 
@@ -129,7 +127,7 @@ def get_detection_dataset_dicts(
         for dataset_name in names
     ]
     for dataset_name, dicts in zip(names, dataset_dicts):
-        assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
+        assert len(dicts), f"Dataset '{dataset_name}' is empty!"
 
     if proposal_files is not None:
         assert len(names) == len(proposal_files)
@@ -159,7 +157,7 @@ def get_detection_dataset_dicts(
     return dataset_dicts
 
 
-def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
+def _train_loader_from_config(cfg: Any, mapper: Any = None, *, dataset: Any = None, sampler: Any = None) -> dict[str, Any]:
     if dataset is None:
         dataset = get_detection_dataset_dicts(
             cfg.DATASETS.TRAIN,
@@ -179,7 +177,7 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
     if sampler is None:
         sampler_name = cfg.DATALOADER.SAMPLER_TRAIN
         logger = logging.getLogger(__name__)
-        logger.info("Using training sampler {}".format(sampler_name))
+        logger.info(f"Using training sampler {sampler_name}")
         if sampler_name == "TrainingSampler":
             sampler = TrainingSampler(len(dataset))
         elif sampler_name == "RepeatFactorTrainingSampler":
@@ -194,7 +192,7 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
                 len(dataset), cfg.DATALOADER.RANDOM_SUBSET_RATIO
             )
         else:
-            raise ValueError("Unknown training sampler: {}".format(sampler_name))
+            raise ValueError(f"Unknown training sampler: {sampler_name}")
 
     return {
         "dataset": dataset,
@@ -209,14 +207,14 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
 # TODO can allow dataset as an iterable or IterableDataset to make this function more general
 @configurable(from_config=_train_loader_from_config)
 def build_detection_train_loader(
-    dataset,
+    dataset: Union[list[Any], torch.utils.data.Dataset],
     *,
-    mapper,
-    sampler=None,
-    total_batch_size,
-    aspect_ratio_grouping=True,
-    num_workers=0,
-):
+    mapper: Callable,
+    sampler: Optional[torch.utils.data.sampler.Sampler] = None,
+    total_batch_size: int,
+    aspect_ratio_grouping: bool = True,
+    num_workers: int = 0,
+) -> torch.utils.data.DataLoader:
     """
     Build a dataloader for object detection with some default features.
     This interface is experimental.
@@ -260,7 +258,7 @@ def build_detection_train_loader(
     )
 
 
-def _test_loader_from_config(cfg, dataset_name, mapper=None):
+def _test_loader_from_config(cfg: Any, dataset_name: Union[str, list[str]], mapper: Any = None) -> dict[str, Any]:
     """
     Uses the given `dataset_name` argument (instead of the names in cfg), because the
     standard practice is to evaluate each test set individually (not combining them).
@@ -290,8 +288,13 @@ def _test_loader_from_config(cfg, dataset_name, mapper=None):
 
 @configurable(from_config=_test_loader_from_config)
 def build_detection_test_loader(
-    dataset, *, mapper, sampler=None, num_workers=0, samples_per_gpu=1
-):
+    dataset: Union[list[Any], torch.utils.data.Dataset],
+    *,
+    mapper: Callable,
+    sampler: Optional[torch.utils.data.sampler.Sampler] = None,
+    num_workers: int = 0,
+    samples_per_gpu: int = 1,
+) -> torch.utils.data.DataLoader:
     """
     Similar to `build_detection_train_loader`, but uses a batch size of 1,
     and :class:`InferenceSampler`. This sampler coordinates all workers to

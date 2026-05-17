@@ -3,6 +3,7 @@ import os
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_sem_seg
+from typing import Any, Dict
 
 ADE20K_SEM_SEG_FULL_CATEGORIES = [
     {"name": "wall", "id": 2978, "trainId": 0},
@@ -955,7 +956,7 @@ ADE20K_SEM_SEG_FULL_CATEGORIES = [
 ]
 
 
-def _get_ade20k_full_meta():
+def _get_ade20k_full_meta() -> Dict[str, Any]:
     stuff_ids = [k["id"] for k in ADE20K_SEM_SEG_FULL_CATEGORIES]
     assert len(stuff_ids) == 847, len(stuff_ids)
 
@@ -969,7 +970,7 @@ def _get_ade20k_full_meta():
     return ret
 
 
-def register_all_ade20k_full(root):
+def register_all_ade20k_full(root: str) -> None:
     meta = _get_ade20k_full_meta()
     for name, dirname in [("val", "validation")]:
         image_dir = os.path.join(root, "ADE20K_2021_17_01/images_detectron2", dirname)

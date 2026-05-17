@@ -3,17 +3,17 @@
 
 import copy
 import logging
+from typing import Any
 
 import numpy as np
 import torch
-from torch.nn import functional as F
-
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
 from detectron2.data import detection_utils as utils
 from detectron2.data import transforms as T
 from detectron2.projects.point_rend import ColorAugSSDTransform
 from detectron2.structures import BitMasks, Instances
+from torch.nn import functional as F
 
 __all__ = ["MaskFormerSemanticDatasetMapper"]
 
@@ -34,13 +34,13 @@ class MaskFormerSemanticDatasetMapper:
     @configurable
     def __init__(
         self,
-        is_train=True,
+        is_train: bool = True,
         *,
-        augmentations,
-        image_format,
-        ignore_label,
-        size_divisibility,
-    ):
+        augmentations: Any,
+        image_format: str,
+        ignore_label: int,
+        size_divisibility: int,
+    ) -> None:
         """
         NOTE: this interface is experimental.
         Args:
@@ -63,7 +63,7 @@ class MaskFormerSemanticDatasetMapper:
         )
 
     @classmethod
-    def from_config(cls, cfg, is_train=True):
+    def from_config(cls, cfg: Any, is_train: bool = True) -> dict[str, Any]:
         # Build augmentation
         if is_train:
             augs = [
@@ -106,7 +106,7 @@ class MaskFormerSemanticDatasetMapper:
         }
         return ret
 
-    def __call__(self, dataset_dict):
+    def __call__(self, dataset_dict: dict[str, Any]) -> dict[str, Any]:
         """
         Args:
             dataset_dict (dict): Metadata of one image, in Detectron2 Dataset format.

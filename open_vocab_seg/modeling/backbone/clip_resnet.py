@@ -2,6 +2,8 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
 from collections import OrderedDict
+from typing import Any, Optional
+
 import torch
 import torch.nn as nn
 from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
@@ -10,7 +12,7 @@ from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, dilation=1):
+    def __init__(self, inplanes: int, planes: int, stride: int = 1, dilation: int = 1) -> None:
         super().__init__()
 
         # all conv layers have stride 1. an avgpool is performed after the second convolution when stride > 1
@@ -52,7 +54,7 @@ class Bottleneck(nn.Module):
                 )
             )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         identity = x
 
         out = self.relu(self.bn1(self.conv1(x)))
@@ -76,7 +78,7 @@ class ModifiedResNet(nn.Module):
     - The final pooling layer is a QKV attention instead of an average pool
     """
 
-    def __init__(self, layers, width=64, strides=[2, 1, 2, 2, 2], multi_grid=[1, 1, 1]):
+    def __init__(self, layers: list[int], width: int = 64, strides: list[int] = [2, 1, 2, 2, 2], multi_grid: list[int] = [1, 1, 1]) -> None:
         super().__init__()
 
         # the 3-layer stem
@@ -103,7 +105,7 @@ class ModifiedResNet(nn.Module):
         )
         self.num_features = [width * 4, width * 8, width * 16, width * 32]
 
-    def _make_layer(self, planes, blocks, stride=1, dilations=None):
+    def _make_layer(self, planes: int, blocks: int, stride: int = 1, dilations: Optional[list[int]] = None) -> nn.Sequential:
         if dilations is None:
             dilations = [1] * blocks
         layers = [Bottleneck(self._inplanes, planes, stride, dilation=dilations[0])]
@@ -114,8 +116,8 @@ class ModifiedResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
-        def stem(x):
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+        def stem(x: torch.Tensor) -> torch.Tensor:
             for conv, bn in [
                 (self.conv1, self.bn1),
                 (self.conv2, self.bn2),
@@ -141,7 +143,7 @@ class ModifiedResNet(nn.Module):
 
 @BACKBONE_REGISTRY.register()
 class D2ModifiedResNet(ModifiedResNet, Backbone):
-    def __init__(self, cfg, input_shape):
+    def __init__(self, cfg: Any, input_shape: ShapeSpec) -> None:
         depth = cfg.MODEL.RESNETS.DEPTH
         num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
         width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
@@ -178,7 +180,7 @@ class D2ModifiedResNet(ModifiedResNet, Backbone):
             "res5": self.num_features[3],
         }
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         """
         Args:
             x: Tensor of shape (N,C,H,W). H, W must be a multiple of ``self.size_divisibility``.
@@ -192,7 +194,7 @@ class D2ModifiedResNet(ModifiedResNet, Backbone):
                 outputs[k] = y[k]
         return outputs
 
-    def output_shape(self):
+    def output_shape(self) -> dict[str, ShapeSpec]:
         return {
             name: ShapeSpec(
                 channels=self._out_feature_channels[name],
@@ -202,5 +204,5 @@ class D2ModifiedResNet(ModifiedResNet, Backbone):
         }
 
     @property
-    def size_divisibility(self):
+    def size_divisibility(self) -> int:
         return 32

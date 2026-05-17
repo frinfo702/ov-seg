@@ -1,9 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved
 
-import torch
 from collections import OrderedDict
 
+import torch
 
 # PATH to finetune clip model
 clip_ckpt = torch.load('/home/jeffliang/ov-seg/open_clip_training/src/logs/2023_05_29-16_27_38-mask_prompt_tuning-model_ViT-L-14-lr_0.05-b_32-j_4-p_amp/checkpoints/epoch_2.pt')
