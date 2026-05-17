@@ -1,6 +1,9 @@
 open_clip_training/openclip_data/*
 open_clip_training/src/logs/*
 *__pycache__*
+.venv/
+.venv-sam3/
+.ruff_cache/
 
 datasets/
 !datasets/**/*.py
@@ -15,3 +18,5 @@ datasets/**/*.jpg
 wandb/
 output/
 checkpoints/
+.agents/
+**/.orchestra-skills.json
