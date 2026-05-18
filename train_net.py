@@ -276,7 +276,16 @@ def setup(args):
     add_deeplab_config(cfg)
     add_ovseg_config(cfg)
     cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
+    opts = args.opts
+    if len(opts) % 2 != 0:
+        import warnings
+        warnings.warn(
+            f"opts list has odd length ({len(opts)}): {opts}. "
+            "Removing trailing element to avoid 'Override list has odd length' error. "
+            "This is often caused by shell command concatenation."
+        )
+        opts = opts[:-1]
+    cfg.merge_from_list(opts)
     cfg.freeze()
     default_setup(cfg, args)
     # Setup logger for "ovseg" module
@@ -314,7 +323,9 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = default_argument_parser().parse_args()
+    parser = default_argument_parser()
+    args, unknown = parser.parse_known_args()
+    args.opts = unknown + args.opts
     print("Command Line Args:", args)
     launch(
         main,

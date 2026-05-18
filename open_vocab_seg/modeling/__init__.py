@@ -6,3 +6,5 @@ from .backbone.clip_resnet import D2ModifiedResNet
 from .heads.mask_former_head import MaskFormerHead
 from .heads.open_vocab_mask_former_head import OpenVocabMaskFormerHead
 from .heads.pixel_decoder import BasePixelDecoder
+
+from . import ovsam_seg_model  # noqa: F401  # register OVSAMSeg architecture

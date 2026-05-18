@@ -26,6 +26,8 @@ Requires-Dist: timm
 Requires-Dist: torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.7.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
 Requires-Dist: torch-ema
 Requires-Dist: torchmetrics==0.11.4
+Requires-Dist: transformers>=4.38.0
+Requires-Dist: accelerate>=0.25.0
 Requires-Dist: torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.22.1%2Bcu128-cp39-cp39-manylinux_2_28_x86_64.whl
 Requires-Dist: wandb
 Requires-Dist: webdataset>=0.2.5
